@@ -298,7 +298,7 @@ async def manage_tags(
                     context="Deleting unused tags",
                 )
 
-        elif operation == "statistics":
+        elif operation in ("statistics", "stats"):
             try:
                 return await get_tag_statistics_helper()
             except Exception as e:
@@ -315,7 +315,7 @@ async def manage_tags(
                 error_msg=(
                     f"Invalid operation: '{operation}'. Must be one of: "
                     "'list', 'get', 'create', 'update', 'delete', 'find_duplicates', "
-                    "'merge', 'get_unused', 'delete_unused', 'statistics'"
+                    "'merge', 'get_unused', 'delete_unused', 'statistics'/ 'stats'"
                 ),
                 error_code="INVALID_OPERATION",
                 error_type="ValueError",
@@ -330,7 +330,7 @@ async def manage_tags(
                     "Use operation='merge' to merge tags",
                     "Use operation='get_unused' to get unused tags",
                     "Use operation='delete_unused' to delete unused tags",
-                    "Use operation='statistics' to get tag statistics",
+                    "Use operation='statistics' or 'stats' to get tag statistics",
                 ],
                 related_tools=["manage_tags"],
             )
