@@ -6,6 +6,7 @@ and retrieving book information from Calibre libraries.
 """
 
 import asyncio
+import time as _time_mod
 
 from ...logging_config import get_logger, log_error
 from ...server import (
@@ -45,7 +46,30 @@ async def list_books_helper(
         # Validate limit
         limit = max(1, min(200, limit))
 
-        # Perform search
+        # Local library mode: client is None — use SQLAlchemy directly
+        if client is None:
+            from ...services.book_service import book_service
+
+            result = book_service.get_all(
+                search=query,
+                skip=0,
+                limit=limit,
+            )
+            items = result.get("items", [])
+            total = result.get("total", len(items))
+
+            end_time = asyncio.get_event_loop().time()
+            search_time_ms = int((end_time - start_time) * 1000)
+
+            return LibrarySearchResponse(
+                results=items,
+                total_found=total,
+                query_used=query,
+                search_time_ms=search_time_ms,
+                library_searched=current_library or "local",
+            )
+
+        # Remote server mode — use Calibre Content Server API
         results = await client.search_library(query=query, limit=limit, sort=sort)
 
         end_time = asyncio.get_event_loop().time()

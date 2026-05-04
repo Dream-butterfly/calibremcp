@@ -1335,6 +1335,25 @@ class BookService(BaseService[Book, BookCreate, BookUpdate, BookResponse]):
             # You'll need to implement this based on your storage solution
             return self._get_cover_data(book_id)
 
+    # @domain: query_books (by_series operation)
+    def get_books_by_series(self, series_id: int) -> list[dict[str, Any]]:
+        """
+        Get all books in a series, ordered by series index.
+
+        Delegates to BookRepository.get_books_by_series() which returns
+        formatted dicts via _format_book().
+
+        Args:
+            series_id: ID of the series
+
+        Returns:
+            List of books in the series as dictionaries
+        """
+        from calibre_mcp.db.repositories.book_repository import BookRepository
+
+        repo = BookRepository(self.db)
+        return repo.get_books_by_series(series_id=series_id)
+
     # @domain: query_books (recent operation)
     def get_recent_books(self, limit: int = 10) -> list[dict[str, Any]]:
         """

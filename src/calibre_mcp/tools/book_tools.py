@@ -802,9 +802,9 @@ async def search_books_helper(
         try:
             db = get_database()
             with db.session_scope() as session:
-                from sqlalchemy import text
+                from sqlalchemy import text as sa_text
 
-                session.execute(text("SELECT id FROM books LIMIT 1"))
+                session.execute(sa_text("SELECT id FROM books LIMIT 1"))
         except Exception as db_error:
             logger.warning(
                 f"Database issue: {db_error}",
@@ -1354,39 +1354,6 @@ async def search_books_helper(
             "Do NOT try to configure or rewrite JSON config files."
         ) from e
 
-    # BookTools class removed - functionality migrated to manage_books portmanteau tool
-    # Use manage_books(operation="get") instead of BookTools.get_book()
-    # Use query_books(operation="recent") instead of get_recent_books()
-
-    # get_recent_books removed - migrated to query_books(operation="recent")
-    # Use query_books(operation="recent", limit=10) instead
-    """
-    Get a list of the most recently added books in the library.
-
-    Retrieves books sorted by their addition date, with the most recently added
-    books first. This is useful for displaying a "recently added" section in the UI,
-    tracking new acquisitions, or monitoring library growth.
-
-    Args:
-        limit: Maximum number of recent books to return (default: 10, range: 1-1000)
-
-    Returns:
-        List of dictionaries, each containing book information for recently added books.
-        Books are ordered by addition date (most recent first). Each book dictionary
-        includes standard book metadata fields (title, authors, formats, etc.).
-
-    Example:
-        # Get 5 most recently added books
-        recent = get_recent_books(limit=5)
-        for book in recent:
-            print(f"{book['title']} - Added recently")
-
-        # Get last 20 additions for a feed
-        recent = get_recent_books(limit=20)
-    """
-    books = book_service.get_recent_books(limit=limit)
-    return [book.dict() for book in books]
-
 
 # Helper function - called by query_books portmanteau tool
 # NOT registered as MCP tool (no @mcp.tool() decorator)
@@ -1422,7 +1389,7 @@ async def get_books_by_series_helper(series_id: int) -> list[dict[str, Any]]:
             print("Series appears incomplete")
     """
     books = book_service.get_books_by_series(series_id)
-    return [book.dict() for book in books]
+    return books
 
 
 # Helper function - called by query_books portmanteau tool

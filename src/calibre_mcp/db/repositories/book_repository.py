@@ -169,7 +169,7 @@ class BookRepository(BaseRepository[Book]):
                     joinedload(Book.ratings),
                     joinedload(Book.identifiers),
                 )
-                .join(Book.series)
+                .join(Book.series_rel)
                 .filter(Series.id == series_id)
                 .order_by(Book.series_index)
                 .all()

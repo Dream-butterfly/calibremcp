@@ -13,7 +13,8 @@ from ..book_tools import get_books_by_author_helper as _get_books_by_author_help
 from ..book_tools import get_books_by_series_helper as _get_books_by_series_helper
 
 # Import helper functions (NOT registered as MCP tools)
-from ..book_tools import search_books_helper as _search_books_helper
+# ⚡ Phase 2: switched from book_tools.search_books_helper to search_service.search_books
+from .search_service import search_books as _search_books_helper
 from ..core.library_operations import list_books_helper as _list_books_helper
 from ..shared.error_handling import handle_tool_error
 from ..shared.query_parsing import parse_intelligent_query, strip_inventory_question_phrases

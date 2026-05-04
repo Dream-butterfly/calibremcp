@@ -120,9 +120,19 @@
   - `False`: JOIN comments 表并过滤 text 非空 → 返回有非空 comments 的书籍
 - **影响**: `query_books(has_empty_comments=True/False)` 正确过滤
 
+### 修复 3: text 搜索变量覆盖 Bug 🔥（根因）
+- **文件**: `tools/book_tools.py:search_books_helper()`（第 805 行）
+- **问题**: `from sqlalchemy import text` 创建了本地变量 `text`，覆盖了同名的函数参数 `text`（搜索文本字符串）。此后所有 `text` 引用指向 `sqlalchemy.text()` 函数而非原始字符串，导致 `search_text` 始终为 `None`。
+- **修复**: `from sqlalchemy import text as sa_text`
+- **为什么前两轮修复无效**: Session 生命周期修复和 has_empty_comments 修复都在正确的下游路径上，但变量覆盖发生在更上游的调用链中。`search_text = None` 意味着 `get_all(search=None)` 始终被调用，没有搜索条件过滤。
+- **影响**: 修复后 `query_books(text="精灵幻想记")` 从 total=914（全部）变为 total=28（正确过滤）
+- **验证**: 通过了 4 个级别的链式测试（直接 get_all → parsed → 模拟 helper → 完整 MCP 路径）
+
 ### 验证状态
-- ⚠️ 代码变更已写入磁盘，需要重启 MCP 服务进程后生效
-- 测试确认 title 搜索正常（11 条结果），参数传递链路完整
+- ✅ 所有 Phase 1 修复已验证通过
+- ✅ `query_books(text="精灵幻想记")` → total=28（正确）
+- ✅ `query_books(has_empty_comments=True)` → 361 条
+- ✅ `query_books(has_empty_comments=False)` → 553 条
 
 ---
 
