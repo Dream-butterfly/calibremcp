@@ -23,8 +23,9 @@ class Comment(Base, BaseMixin):
     text: Mapped[str] = mapped_column(Text, nullable=False)
 
     # Foreign key to books table
+    # ⚡ NOTE: Actual Calibre DB column is named 'book' not 'book_id'
     book_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("books.id", ondelete="CASCADE"), nullable=False, unique=True
+        "book", Integer, ForeignKey("books.id", ondelete="CASCADE"), nullable=False, unique=True
     )
 
     # Relationships

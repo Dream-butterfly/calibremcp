@@ -3191,7 +3191,7 @@ wheels = [
 
 [[package]]
 name = "schip-mcp-calibre"
-version = "1.8.0"
+version = "1.4.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },

@@ -901,15 +901,10 @@ async def search_books_helper(
         if parsed["rating"] and not rating:
             rating = parsed["rating"]
 
-        # Use remaining query text (after removing structured params) for text search
-        if (
-            parsed["author"]
-            or parsed["tag"]
-            or parsed["series"]
-            or parsed["pubdate"]
-            or parsed["rating"]
-        ):
-            search_text = parsed["text"] if parsed["text"] else None
+        # ⚡ FIX (Phase 1): Always process search_text even without structured params.
+        # Old code gated on parsed having author/tag/series/pubdate/rating, so plain
+        # text like "精灵幻想记" silently dropped search_queries → filters["search"] never set.
+        if search_text:
 
             # Handle text search across specified fields
             search_terms = []

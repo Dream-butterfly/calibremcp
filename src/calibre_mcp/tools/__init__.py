@@ -21,8 +21,8 @@ logger = logging.getLogger(__name__)
 # Type variable for tool functions
 T = TypeVar("T", bound=Callable[..., Any])
 
-# Global tool registry
-TOOL_REGISTRY: dict[str, dict[str, Any]] = {}
+# [DEPRECATED] Global tool registry — replaced by @mcp.tool() portmanteau pattern
+_DEPRECATED_TOOL_REGISTRY: dict[str, dict[str, Any]] = {}
 
 # Set of directories to ignore when discovering tools
 IGNORE_DIRS = {"__pycache__", ".mypy_cache", ".pytest_cache"}
@@ -31,45 +31,29 @@ IGNORE_DIRS = {"__pycache__", ".mypy_cache", ".pytest_cache"}
 from .base_tool import BaseTool, mcp_tool  # noqa: E402, F401
 
 
-def tool(
+def _DEPRECATED_tool(
     name: str, description: str, parameters: dict[str, Any] | None = None, **kwargs
 ) -> Callable[[T], T]:
     """
-    Decorator to register a function as an MCP tool.
-
-    Args:
-        name: Unique name of the tool
-        description: Description of what the tool does
-        parameters: Dictionary describing the tool's parameters
-        **kwargs: Additional tool metadata
-
-    Returns:
-        Decorated function
+    [DEPRECATED] Old-style tool decorator — replaced by @mcp.tool() portmanteau pattern.
     """
-
     def decorator(func: T) -> T:
-        # Add tool metadata to the function
-        func._mcp_tool = {  # type: ignore
+        func._mcp_tool = {
             "name": name,
             "description": description,
             "parameters": parameters or {},
             "func": func,
             **kwargs,
         }
-
-        # Register the tool
-        TOOL_REGISTRY[name] = func._mcp_tool  # type: ignore
-
+        _DEPRECATED_TOOL_REGISTRY[name] = func._mcp_tool
         @wraps(func)
-        async def wrapper(*args: Any, **kwargs: Any) -> Any:
+        async def wrapper(*args, **kwargs):
             return await func(*args, **kwargs)
-
         return cast(T, wrapper)
-
     return decorator
 
 
-def get_available_tools() -> list[dict[str, Any]]:
+def _DEPRECATED_get_available_tools() -> list[dict[str, Any]]:
     """
     Get a list of all available tools with their metadata.
 
@@ -82,11 +66,11 @@ def get_available_tools() -> list[dict[str, Any]]:
             "description": tool_info["description"],
             "parameters": tool_info.get("parameters", {}),
         }
-        for tool_info in TOOL_REGISTRY.values()
+        for tool_info in _DEPRECATED_TOOL_REGISTRY.values()
     ]
 
 
-def discover_tools() -> list[type["BaseTool"]]:
+def _DEPRECATED_discover_tools() -> list[type["BaseTool"]]:
     """
     Discover and import all tool classes from subdirectories.
 

@@ -93,6 +93,7 @@ class BookService(BaseService[Book, BookCreate, BookUpdate, BookResponse]):
 
         return None
 
+    # @domain: manage_books (get_book helper), manage_metadata (show operation)
     def get_by_id(self, book_id: int) -> dict[str, Any]:
         """
         Get a book by its ID with all related data.
@@ -128,6 +129,7 @@ class BookService(BaseService[Book, BookCreate, BookUpdate, BookResponse]):
 
             return self._to_response(book)
 
+    # @domain: query_books (search/list/recent), manage_libraries (stats), library_operations, rag, web_enrichment
     def get_all(
         self,
         skip: int = 0,
@@ -242,12 +244,13 @@ class BookService(BaseService[Book, BookCreate, BookUpdate, BookResponse]):
             )
             raise
 
+        # ⚡ FIX: Session now covers entire query lifecycle (was bug: with block closed session prematurely)
+        session = self._get_db_session()
+        logger.debug(
+            "Database session acquired",
+            extra={"service": "book_service", "action": "session_acquired"},
+        )
         try:
-            with self._get_db_session() as session:
-                logger.debug(
-                    "Database session acquired",
-                    extra={"service": "book_service", "action": "session_acquired"},
-                )
             # Start building the query
             # Only eager-load relationships for tables that definitely exist in Calibre schema
             # Many tables (identifiers, books_ratings_link, etc.) may not exist in all Calibre databases
@@ -437,8 +440,10 @@ class BookService(BaseService[Book, BookCreate, BookUpdate, BookResponse]):
                         },
                     )
                     search_pattern = f"%{search}%"
-                    query = (
-                        query.join(Book.authors, isouter=True)
+                    # ⚡ Use subquery for LIKE search to avoid joinedload + explicit join conflicts
+                    matched_ids = (
+                        session.query(Book.id)
+                        .join(Book.authors, isouter=True)
                         .join(Book.series, isouter=True)
                         .join(Book.tags, isouter=True)
                         .filter(
@@ -450,7 +455,9 @@ class BookService(BaseService[Book, BookCreate, BookUpdate, BookResponse]):
                             )
                         )
                         .distinct()
+                        .subquery()
                     )
+                    query = query.filter(Book.id.in_(matched_ids))
                     logger.debug(
                         "LIKE search filter applied",
                         extra={"service": "book_service", "action": "like_filter_applied"},
@@ -744,7 +751,9 @@ class BookService(BaseService[Book, BookCreate, BookUpdate, BookResponse]):
                 )
                 comment_pattern = f"%{comment}%"
                 query = (
-                    query.join(Book.comments).filter(Comment.text.ilike(comment_pattern)).distinct()
+                    query.join(Comment, Comment.book_id == Book.id)
+                    .filter(Comment.text.ilike(comment_pattern))
+                    .distinct()
                 )
                 logger.debug(
                     "Comment filter applied",
@@ -895,6 +904,31 @@ class BookService(BaseService[Book, BookCreate, BookUpdate, BookResponse]):
                             .exists()
                         )
                         query = query.filter(~subquery)
+                elif field == "has_empty_comments":
+                    from ..models.comment import Comment
+
+                    if value is True:
+                        # Books with no comments or empty comments
+                        subquery = (
+                            session.query(Comment)
+                            .filter(
+                                Comment.book_id == Book.id,
+                                Comment.text.isnot(None),
+                                Comment.text != "",
+                            )
+                            .exists()
+                        )
+                        query = query.filter(~subquery)
+                    elif value is False:
+                        # Books with non-empty comments
+                        # ⚡ Use explicit join to avoid ambiguous column name with ORM
+                        query = query.join(
+                            Comment,
+                            Comment.book_id == Book.id,
+                        ).filter(
+                            Comment.text.isnot(None),
+                            Comment.text != "",
+                        ).distinct()
                 elif hasattr(Book, field):
                     column = getattr(Book, field)
                     if isinstance(value, (list, tuple, set)):
@@ -1068,7 +1102,10 @@ class BookService(BaseService[Book, BookCreate, BookUpdate, BookResponse]):
                 exc_info=True,
             )
             raise
+        finally:
+            session.close()
 
+    # @domain: manage_books (add_book helper)
     def create(self, book_data: BookCreate) -> dict[str, Any]:
         """
         Create a new book with the given data.
@@ -1122,6 +1159,7 @@ class BookService(BaseService[Book, BookCreate, BookUpdate, BookResponse]):
 
             return self._to_response(book)
 
+    # @domain: manage_books (update_book helper), manage_metadata (update_book_metadata helper)
     def update(self, book_id: int, book_data: BookUpdate | dict[str, Any]) -> dict[str, Any]:
         """
         Update an existing book with the given data.
@@ -1212,7 +1250,7 @@ class BookService(BaseService[Book, BookCreate, BookUpdate, BookResponse]):
                     if existing:
                         existing.text = text
                     else:
-                        session.add(Comment(book=book.id, text=text))
+                        session.add(Comment(book_id=book.id, text=text))
 
             session.add(book)
             session.commit()
@@ -1220,6 +1258,7 @@ class BookService(BaseService[Book, BookCreate, BookUpdate, BookResponse]):
 
             return self._to_response(book)
 
+    # @domain: manage_books (delete_book helper)
     def delete(self, book_id: int) -> bool:
         """
         Delete a book by its ID.
@@ -1296,6 +1335,7 @@ class BookService(BaseService[Book, BookCreate, BookUpdate, BookResponse]):
             # You'll need to implement this based on your storage solution
             return self._get_cover_data(book_id)
 
+    # @domain: query_books (recent operation)
     def get_recent_books(self, limit: int = 10) -> list[dict[str, Any]]:
         """
         Get recently added books.
