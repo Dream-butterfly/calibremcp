@@ -321,7 +321,19 @@ async def query_books(
                     ],
                     "related_tools": ["query_books"],
                 }
-            return await _get_books_by_series_helper(series_id=series_id)
+            books = await _get_books_by_series_helper(series_id=series_id)
+            if books:
+                series_name = books[0].get("series", "Unknown")
+            else:
+                series_name = "Unknown"
+            return {
+                "success": True,
+                "operation": "by_series",
+                "series_id": series_id,
+                "series_name": series_name,
+                "items": list(books) if isinstance(books, list) else books,
+                "total": len(books) if isinstance(books, list) else 0,
+            }
 
         else:
             return {
