@@ -101,8 +101,9 @@ async def manage_metadata(
                 import os
                 import platform
                 import subprocess
+                from datetime import datetime
 
-                from ...services import book_service
+                from ...services.book_service import book_service
                 from ...tools.book_tools import search_books_helper
 
                 # Validate query parameter
@@ -122,7 +123,7 @@ async def manage_metadata(
                 # Search for the book
                 search_params = {"limit": 10}
                 if query:
-                    search_params["text"] = query
+                    search_params["title"] = query
                 if author:
                     search_params["author"] = author
 
@@ -181,7 +182,7 @@ async def manage_metadata(
                 rating_str = f"{rating}/5" if rating else "Not rated"
 
                 pubdate = book_data.get("pubdate")
-                pubdate_str = pubdate[:10] if pubdate else "Unknown"
+                pubdate_str = pubdate.strftime("%Y-%m-%d") if isinstance(pubdate, datetime) else (str(pubdate)[:10] if pubdate else "Unknown")
 
                 isbn = book_data.get("isbn", "None")
                 formats_list = book_data.get("formats", [])

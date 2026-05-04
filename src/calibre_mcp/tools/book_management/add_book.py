@@ -200,6 +200,7 @@ async def add_book_helper(
         # Execute calibredb add command
         process = await asyncio.create_subprocess_exec(
             *cmd,
+            stdin=asyncio.subprocess.DEVNULL,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
@@ -216,17 +217,16 @@ async def add_book_helper(
         output = stdout.decode("utf-8", errors="replace").strip()
         logger.debug(f"calibredb output: {output}")
 
-        # Extract book ID from output
+        # Extract book ID from output (handles multiple languages)
+        import re
+
         book_id = None
         for line in output.split("\n"):
-            if "Added book id" in line or "Added book ids" in line:
-                # Extract number(s) from line
-                import re
-
-                ids = re.findall(r"\d+", line)
-                if ids:
-                    book_id = int(ids[0])  # Use first ID if multiple
-                    break
+            # Match patterns like: "Added book ids: 123", "已添加的书籍的id: 1078", "id: 123"
+            id_match = re.search(r"[Ii][Dd][\s：:]*(\d+)", line)
+            if id_match:
+                book_id = int(id_match.group(1))
+                break
 
         if not book_id:
             logger.warning(f"Could not extract book ID from calibredb output: {output}")
@@ -281,3 +281,139 @@ async def add_book_helper(
     except Exception as e:
         logger.error(f"Error adding book: {e}", exc_info=True)
         raise MCPServerError(f"Failed to add book: {str(e)}")
+
+
+def _parse_book_ids(output: str) -> list[int]:
+    """Extract all book IDs from calibredb add output (handles multiple languages)."""
+    import re
+
+    ids: list[int] = []
+    for line in output.split("\n"):
+        # Match "id: 123" or "id: 123, 456" patterns
+        id_match = re.search(r"[Ii][Dd][\s：:]\s*([\d,\s]+)", line)
+        if id_match:
+            # Extract all numbers from the matched group
+            raw = id_match.group(1)
+            ids = [int(x) for x in re.findall(r"\d+", raw)]
+            break
+    return ids
+
+
+async def add_books_batch_helper(
+    file_paths: list[str],
+    fetch_metadata: bool = True,
+    convert_to: str | None = None,
+    library_path: str | None = None,
+) -> list[dict[str, Any]]:
+    """
+    Add multiple books in a single calibredb call.
+
+    Uses calibredb's native ability to accept multiple file paths,
+    avoiding repeated subprocess and MCP round-trip overhead.
+
+    Args:
+        file_paths: List of paths to book files to add
+        fetch_metadata: Whether to fetch metadata from online sources
+        convert_to: Convert to this format before adding
+        library_path: Path to the Calibre library
+
+    Returns:
+        List of dicts, one per added book, each with id/title/authors/formats
+    """
+    if not file_paths:
+        raise MCPServerError("file_paths is empty — provide at least one file path")
+
+    # Validate all files exist
+    resolved: list[Path] = []
+    for fp in file_paths:
+        p = Path(fp)
+        if not p.exists():
+            raise MCPServerError(f"File not found: {fp}")
+        if not p.is_file():
+            raise MCPServerError(f"Path is not a file: {fp}")
+        resolved.append(p)
+
+    lib_path = _get_library_path(library_path)
+    logger.info(f"Batch adding {len(resolved)} books to library: {lib_path}")
+
+    calibredb = _find_calibredb()
+    if not calibredb:
+        raise MCPServerError(
+            "calibredb not found in PATH. Please install Calibre."
+        )
+
+    # Build command with all files
+    cmd = [calibredb, "add"]
+    for p in resolved:
+        cmd.append(str(p))
+    cmd.extend(["--library-path", str(lib_path), "--duplicates"])
+
+    if not fetch_metadata:
+        cmd.append("--dont-download-cover")
+        cmd.append("--dont-read-metadata")
+
+    if convert_to:
+        cmd.extend(["--convert", convert_to.upper()])
+
+    logger.debug(f"Executing calibredb command: {' '.join(cmd)}")
+
+    process = await asyncio.create_subprocess_exec(
+        *cmd,
+        stdin=asyncio.subprocess.DEVNULL,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+
+    stdout, stderr = await process.communicate()
+
+    if process.returncode != 0:
+        error_msg = stderr.decode("utf-8", errors="replace") if stderr else "Unknown error"
+        logger.error(f"calibredb batch add failed (rc={process.returncode}): {error_msg}")
+        raise MCPServerError(f"Failed to add books: {error_msg}")
+
+    output = stdout.decode("utf-8", errors="replace").strip()
+    logger.debug(f"calibredb batch output: {output}")
+
+    book_ids = _parse_book_ids(output)
+    if not book_ids:
+        raise MCPServerError(
+            f"Books were added but could not determine book IDs. calibredb output: {output}"
+        )
+
+    logger.info(f"Batch added {len(book_ids)} books: IDs {book_ids}")
+
+    # Fetch details for each added book
+    from .get_book import get_book_helper
+
+    results: list[dict[str, Any]] = []
+    for bid in book_ids:
+        try:
+            book_data = await get_book_helper(
+                book_id=str(bid),
+                include_metadata=True,
+                include_formats=True,
+                include_cover=False,
+                library_path=str(lib_path),
+            )
+            results.append({
+                "id": str(bid),
+                "title": book_data.get("title", "Unknown"),
+                "authors": book_data.get("authors", []),
+                "formats": book_data.get("formats", []),
+                "cover_url": book_data.get("cover_url"),
+                "status": book_data.get("status", "unread"),
+                "progress": book_data.get("progress", 0.0),
+            })
+        except Exception as e:
+            logger.warning(f"Could not retrieve details for book ID {bid}: {e}")
+            results.append({
+                "id": str(bid),
+                "title": "Unknown",
+                "authors": [],
+                "formats": [],
+                "cover_url": None,
+                "status": "unread",
+                "progress": 0.0,
+            })
+
+    return results

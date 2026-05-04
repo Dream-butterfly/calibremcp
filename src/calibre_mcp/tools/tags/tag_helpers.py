@@ -63,7 +63,7 @@ async def list_tags_helper(
 async def get_tag_helper(tag_id: int | None = None, tag_name: str | None = None) -> dict[str, Any]:
     """Helper function - NOT registered as MCP tool."""
     try:
-        config = CalibreConfig()
+        config = CalibreConfig.load_config()
         if not config.local_library_path:
             return {
                 "error": "No library configured",
@@ -97,7 +97,7 @@ async def get_tag_helper(tag_id: int | None = None, tag_name: str | None = None)
 async def create_tag_helper(name: str) -> dict[str, Any]:
     """Helper function - NOT registered as MCP tool."""
     try:
-        config = CalibreConfig()
+        config = CalibreConfig.load_config()
         if not config.local_library_path:
             return {
                 "error": "No library configured",
@@ -117,7 +117,7 @@ async def create_tag_helper(name: str) -> dict[str, Any]:
 async def update_tag_helper(tag_id: int, name: str) -> dict[str, Any]:
     """Helper function - NOT registered as MCP tool."""
     try:
-        config = CalibreConfig()
+        config = CalibreConfig.load_config()
         if not config.local_library_path:
             return {
                 "error": "No library configured",
@@ -139,7 +139,7 @@ async def update_tag_helper(tag_id: int, name: str) -> dict[str, Any]:
 async def delete_tag_helper(tag_id: int, force: bool = False) -> dict[str, Any]:
     """Helper function - NOT registered as MCP tool."""
     try:
-        config = CalibreConfig()
+        config = CalibreConfig.load_config()
         if not config.local_library_path:
             return {
                 "error": "No library configured",
@@ -159,7 +159,7 @@ async def delete_tag_helper(tag_id: int, force: bool = False) -> dict[str, Any]:
 async def find_duplicate_tags_helper(similarity_threshold: float = 0.8) -> dict[str, Any]:
     """Helper function - NOT registered as MCP tool."""
     try:
-        config = CalibreConfig()
+        config = CalibreConfig.load_config()
         if not config.local_library_path:
             return {
                 "error": "No library configured",
@@ -187,7 +187,7 @@ async def find_duplicate_tags_helper(similarity_threshold: float = 0.8) -> dict[
 async def merge_tags_helper(source_tag_ids: list[int], target_tag_id: int) -> dict[str, Any]:
     """Helper function - NOT registered as MCP tool."""
     try:
-        config = CalibreConfig()
+        config = CalibreConfig.load_config()
         if not config.local_library_path:
             return {
                 "error": "No library configured",
@@ -209,7 +209,7 @@ async def merge_tags_helper(source_tag_ids: list[int], target_tag_id: int) -> di
 async def get_unused_tags_helper() -> dict[str, Any]:
     """Helper function - NOT registered as MCP tool."""
     try:
-        config = CalibreConfig()
+        config = CalibreConfig.load_config()
         if not config.local_library_path:
             return {
                 "error": "No library configured",
@@ -227,7 +227,7 @@ async def get_unused_tags_helper() -> dict[str, Any]:
 async def delete_unused_tags_helper() -> dict[str, Any]:
     """Helper function - NOT registered as MCP tool."""
     try:
-        config = CalibreConfig()
+        config = CalibreConfig.load_config()
         if not config.local_library_path:
             return {
                 "error": "No library configured",
@@ -245,7 +245,7 @@ async def delete_unused_tags_helper() -> dict[str, Any]:
 async def get_tag_statistics_helper() -> dict[str, Any]:
     """Helper function - NOT registered as MCP tool."""
     try:
-        config = CalibreConfig()
+        config = CalibreConfig.load_config()
         if not config.local_library_path:
             return {
                 "error": "No library configured",

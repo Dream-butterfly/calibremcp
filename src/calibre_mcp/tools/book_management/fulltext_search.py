@@ -72,141 +72,147 @@ async def search_fulltext(
         except Exception:
             pass
 
-    @handle_tool_error(logger, "search_fulltext")
     def _run() -> dict[str, Any]:
-        limit_val = max(1, min(200, limit))
-        offset_val = max(0, offset)
-
         try:
+            limit_val = max(1, min(200, limit))
+            offset_val = max(0, offset)
+
             db = get_database()
+            meta_path = db.get_current_path()
+            if not meta_path:
+                return format_error_response(
+                    error_msg="Current library path unknown. Switch library with manage_libraries(operation='switch').",
+                    error_code="LIBRARY_NOT_SET",
+                    error_type="RuntimeError",
+                )
+
+            fts_path = find_fts_database(Path(meta_path))
+            if not fts_path:
+                return format_error_response(
+                    error_msg=(
+                        "Full-text search database not found. Calibre creates full-text-search.db "
+                        "in the library folder when FTS is enabled. Enable FTS in Calibre and run "
+                        "indexing, or use query_books to search metadata only."
+                    ),
+                    error_code="FTS_DATABASE_NOT_FOUND",
+                    error_type="FileNotFoundError",
+                )
+
+            used_fts5 = True
+            locations: list[dict[str, Any]] = []
+
+            if resolve_locations:
+                detailed, total_books, used_fts5 = query_fts_detailed(
+                    fts_path,
+                    search_text=query,
+                    limit=limit_val,
+                    offset=offset_val,
+                    use_stemming=use_stemming,
+                    include_snippets=include_snippets,
+                )
+                book_ids: list[int] = []
+                seen: set[int] = set()
+                snippets: dict[int, str] = {}
+                for row in detailed:
+                    bid = row["book_id"]
+                    if bid not in snippets and row.get("snippet"):
+                        snippets[bid] = row["snippet"]
+                    if bid not in seen:
+                        seen.add(bid)
+                        book_ids.append(bid)
+                total = total_books
+
+                for row in detailed:
+                    bid = row["book_id"]
+                    fmt = row["format"]
+                    try:
+                        b = book_service.get_by_id(bid)
+                    except Exception as e:
+                        logger.warning("get_by_id failed for %s: %s", bid, e)
+                        continue
+                    fpath = _pick_format_path(b, fmt)
+                    loc_bundle: dict[str, Any] = {
+                        "books_text_id": row["books_text_id"],
+                        "book_id": bid,
+                        "format": fmt,
+                        "snippet": row.get("snippet"),
+                        "char_offset": row.get("char_offset"),
+                        "char_end": row.get("char_end"),
+                    }
+                    if fpath:
+                        try:
+                            resolved = resolve_location_for_file(fpath, fmt, query)
+                            loc_bundle.update(resolved)
+                            pdf = (
+                                loc_bundle.get("pdf") if isinstance(loc_bundle.get("pdf"), dict) else {}
+                            )
+                            if pdf.get("resolved"):
+                                loc_bundle["manage_viewer_get_page"] = {
+                                    "operation": "get_page",
+                                    "book_id": bid,
+                                    "file_path": fpath,
+                                    "page_number": pdf.get("page_0based", 0),
+                                }
+                        except Exception as e:
+                            loc_bundle["resolution_error"] = str(e)
+                    else:
+                        loc_bundle["resolution_error"] = "no_file_path_for_format"
+                    locations.append(loc_bundle)
+            else:
+                book_ids, total, snippets = query_fts(
+                    fts_path,
+                    search_text=query,
+                    limit=limit_val,
+                    offset=offset_val,
+                    use_stemming=use_stemming,
+                    include_snippets=include_snippets,
+                )
+
+            out: dict[str, Any] = {
+                "total": total,
+                "book_ids": book_ids,
+                "snippets": snippets,
+                "books": [],
+            }
+            if resolve_locations:
+                out["locations"] = locations
+                out["fts_used_virtual_table"] = used_fts5
+                out["fts_available"] = used_fts5
+            else:
+                out["fts_available"] = total > 0 or not book_ids
+
+            if enrich and book_ids:
+                try:
+                    for bid in book_ids:
+                        b = book_service.get_by_id(bid)
+                        if b:
+                            rec = dict(b)
+                            if include_snippets and bid in snippets:
+                                rec["snippet"] = snippets[bid]
+                            out["books"].append(rec)
+                except Exception as e:
+                    logger.warning("Enrich failed for fulltext results: %s", e)
+                    out["books"] = []
+                    out["enrich_error"] = str(e)
+
+            out["execution_time_ms"] = int((__import__("time").time() - start_ms) * 1000)
+            out["recommendations"] = [
+                "Use query_books for metadata-only search",
+                "Use manage_books(operation='get') for full book details",
+            ]
+            if resolve_locations:
+                out["recommendations"].append(
+                    "With resolve_locations: use locations[].calibre_viewer for ebook-viewer --open-at search:… "
+                    "or locations[].pdf / locations[].epub for page/spine when resolved."
+                )
+            return out
         except RuntimeError:
             return format_error_response(
-                error_msg="No library loaded. Use manage_libraries(operation='list') then operation='switch')."
+                error_msg="No library loaded. Use manage_libraries(operation='list') then operation='switch').",
+                error_code="NO_LIBRARY_LOADED",
+                error_type="RuntimeError",
             )
-
-        meta_path = db.get_current_path()
-        if not meta_path:
-            return format_error_response(
-                error_msg="Current library path unknown. Switch library with manage_libraries(operation='switch')."
-            )
-
-        fts_path = find_fts_database(Path(meta_path))
-        if not fts_path:
-            return format_error_response(
-                error_msg=(
-                    "Full-text search database not found. Calibre creates full-text-search.db "
-                    "in the library folder when FTS is enabled. Enable FTS in Calibre and run "
-                    "indexing, or use query_books to search metadata only."
-                )
-            )
-
-        used_fts5 = True
-        locations: list[dict[str, Any]] = []
-
-        if resolve_locations:
-            detailed, total_books, used_fts5 = query_fts_detailed(
-                fts_path,
-                search_text=query,
-                limit=limit_val,
-                offset=offset_val,
-                use_stemming=use_stemming,
-                include_snippets=include_snippets,
-            )
-            book_ids: list[int] = []
-            seen: set[int] = set()
-            snippets: dict[int, str] = {}
-            for row in detailed:
-                bid = row["book_id"]
-                if bid not in snippets and row.get("snippet"):
-                    snippets[bid] = row["snippet"]
-                if bid not in seen:
-                    seen.add(bid)
-                    book_ids.append(bid)
-            total = total_books
-
-            for row in detailed:
-                bid = row["book_id"]
-                fmt = row["format"]
-                try:
-                    b = book_service.get_by_id(bid)
-                except Exception as e:
-                    logger.warning("get_by_id failed for %s: %s", bid, e)
-                    continue
-                fpath = _pick_format_path(b, fmt)
-                loc_bundle: dict[str, Any] = {
-                    "books_text_id": row["books_text_id"],
-                    "book_id": bid,
-                    "format": fmt,
-                    "snippet": row.get("snippet"),
-                    "char_offset": row.get("char_offset"),
-                    "char_end": row.get("char_end"),
-                }
-                if fpath:
-                    try:
-                        resolved = resolve_location_for_file(fpath, fmt, query)
-                        loc_bundle.update(resolved)
-                        pdf = (
-                            loc_bundle.get("pdf") if isinstance(loc_bundle.get("pdf"), dict) else {}
-                        )
-                        if pdf.get("resolved"):
-                            loc_bundle["manage_viewer_get_page"] = {
-                                "operation": "get_page",
-                                "book_id": bid,
-                                "file_path": fpath,
-                                "page_number": pdf.get("page_0based", 0),
-                            }
-                    except Exception as e:
-                        loc_bundle["resolution_error"] = str(e)
-                else:
-                    loc_bundle["resolution_error"] = "no_file_path_for_format"
-                locations.append(loc_bundle)
-        else:
-            book_ids, total, snippets = query_fts(
-                fts_path,
-                search_text=query,
-                limit=limit_val,
-                offset=offset_val,
-                use_stemming=use_stemming,
-                include_snippets=include_snippets,
-            )
-
-        out: dict[str, Any] = {
-            "total": total,
-            "book_ids": book_ids,
-            "snippets": snippets,
-            "books": [],
-        }
-        if resolve_locations:
-            out["locations"] = locations
-            out["fts_used_virtual_table"] = used_fts5
-            out["fts_available"] = used_fts5
-        else:
-            out["fts_available"] = total > 0 or not book_ids
-
-        if enrich and book_ids:
-            try:
-                for bid in book_ids:
-                    b = book_service.get_by_id(bid)
-                    if b:
-                        rec = dict(b)
-                        if include_snippets and bid in snippets:
-                            rec["snippet"] = snippets[bid]
-                        out["books"].append(rec)
-            except Exception as e:
-                logger.warning("Enrich failed for fulltext results: %s", e)
-                out["books"] = []
-                out["enrich_error"] = str(e)
-
-        out["execution_time_ms"] = int((__import__("time").time() - start_ms) * 1000)
-        out["recommendations"] = [
-            "Use query_books for metadata-only search",
-            "Use manage_books(operation='get') for full book details",
-        ]
-        if resolve_locations:
-            out["recommendations"].append(
-                "With resolve_locations: use locations[].calibre_viewer for ebook-viewer --open-at search:… "
-                "or locations[].pdf / locations[].epub for page/spine when resolved."
-            )
-        return out
+        except Exception as e:
+            return handle_tool_error(e, tool_name="search_fulltext")
 
     return await asyncio.to_thread(_run)

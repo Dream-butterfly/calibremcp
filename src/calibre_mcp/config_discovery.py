@@ -60,7 +60,7 @@ class CalibreConfigDiscovery:
         Discover all available Calibre libraries using multiple methods.
 
         Priority:
-        1. Explicitly given directory (L:/Multimedia Files/Written Word) - highest priority
+        1. CALIBRE_LIBRARY_PATH environment variable - highest priority
         2. Parse Calibre's JSON config files (library_infos.json, global.py.json) - fallback
 
         Returns:
@@ -68,13 +68,11 @@ class CalibreConfigDiscovery:
         """
         libraries = {}
 
-        # Method 1: Scan explicitly given directory first (highest priority)
-        user_library_path = Path("L:/Multimedia Files/Written Word")
-        if user_library_path.exists() and user_library_path.is_dir():
-            scanned_libraries = self._scan_directory_for_libraries(user_library_path)
-            libraries.update(scanned_libraries)
+        # Method 1: Environment variable override (highest priority)
+        env_libraries = self._discover_from_environment()
+        libraries.update(env_libraries)
 
-        # Method 2: Only parse JSON config if no libraries found from explicit directory
+        # Method 2: Parse Calibre's JSON config files as fallback
         if not libraries:
             # Use Calibre's Python API to get libraries (most reliable)
             calibre_api_libraries = self._discover_from_calibre_api()
@@ -84,9 +82,8 @@ class CalibreConfigDiscovery:
             calibre_libraries = self._discover_from_calibre_config()
             libraries.update(calibre_libraries)
 
-        # Method 3: Environment variable override (always checked)
-        env_libraries = self._discover_from_environment()
-        libraries.update(env_libraries)
+        # Method 3 (legacy kept as comment)
+        # env var check is now in Method 1 (highest priority)
 
         self.discovered_libraries = libraries
         log_operation(logger, "libraries_discovered", level="INFO", total_libraries=len(libraries))
@@ -309,16 +306,14 @@ class CalibreConfigDiscovery:
         """Scan common locations where Calibre libraries might be stored"""
         libraries = {}
 
-        # Common base directories to scan
-        # PRIORITY: User's actual library location first
-        user_library_path = Path("L:/Multimedia Files/Written Word")
+        # Common base directories to scan (used as fallback if env var not set)
         common_bases = []
 
-        # Add user's actual library location FIRST (highest priority)
-        if user_library_path.exists():
-            common_bases.append(user_library_path)
+        # Add CALIBRE_LIBRARY_PATH if set (highest priority in common locations)
+        if "CALIBRE_LIBRARY_PATH" in os.environ:
+            common_bases.append(Path(os.environ["CALIBRE_LIBRARY_PATH"]))
 
-        # Then add other common locations (lower priority)
+        # Add other common locations (lower priority)
         common_bases.extend(
             [
                 Path.home() / "Documents" / "Calibre Library",
@@ -328,16 +323,10 @@ class CalibreConfigDiscovery:
             ]
         )
 
-        # Skip the default Windows location if it's the wrong one
-        # Only add C:\Users\...\Calibre Library if it's NOT the user's home
+        # Add the default Windows location
         default_windows_path = Path("C:/Users") / os.getenv("USERNAME", "") / "Calibre Library"
-        if default_windows_path.exists() and default_windows_path != user_library_path:
-            # Only add if it's different from the user's actual library
+        if default_windows_path.exists():
             common_bases.append(default_windows_path)
-
-        # Add environment-specific paths
-        if "CALIBRE_LIBRARY_PATH" in os.environ:
-            common_bases.append(Path(os.environ["CALIBRE_LIBRARY_PATH"]))
 
         for base_dir in common_bases:
             if base_dir.exists() and base_dir.is_dir():

@@ -196,6 +196,17 @@ async def _probe_calibre_connectivity(startup_log: logging.Logger) -> None:
     else:
         startup_log.info("STARTUP PROBE: CALIBRE_BASE_PATH not set, skipping local probe")
 
+    # --- 1.5 CALIBRE_LIBRARY_PATH probe (singular, single library path) ---
+    lib_path_str = os.environ.get("CALIBRE_LIBRARY_PATH", "").strip().strip('"')
+    if lib_path_str and not base_path_ok:
+        lib_path = Path(lib_path_str)
+        if lib_path.exists() and (lib_path / "metadata.db").exists():
+            base_path_ok = True
+            startup_log.info(
+                "STARTUP PROBE: local library OK via CALIBRE_LIBRARY_PATH — %s",
+                lib_path,
+            )
+
     # --- 2. Remote server probe ---
     server_url = os.environ.get("CALIBRE_SERVER_URL", "").strip()
     if server_url:
@@ -266,6 +277,40 @@ async def server_lifespan(mcp_instance: FastMCP):
     lifespan_log.info("SERVER LIFESPAN: starting")
 
     await _probe_calibre_connectivity(lifespan_log)
+
+    # —— Initialize database connection for SQLAlchemy queries ——
+    try:
+        from pathlib import Path
+        from calibre_mcp.config import CalibreConfig
+        from calibre_mcp.db.database import init_database
+
+        config = CalibreConfig.load_config()
+        db_path = None
+
+        # Priority 1: config.local_library_path (set via CALIBRE_LIBRARY_PATH env_mapping or discovery)
+        if config.local_library_path:
+            candidate = config.local_library_path / "metadata.db"
+            if candidate.exists():
+                db_path = candidate
+
+        # Priority 2: directly read CALIBRE_LIBRARY_PATH from environment (fallback)
+        if db_path is None:
+            lib_path_str = os.environ.get("CALIBRE_LIBRARY_PATH", "").strip().strip('"')
+            if lib_path_str:
+                candidate = Path(lib_path_str) / "metadata.db"
+                if candidate.exists():
+                    db_path = candidate
+
+        if db_path is not None:
+            init_database(str(db_path.absolute()), echo=False, force=True)
+            lifespan_log.info("Database initialized: %s", db_path)
+        else:
+            lifespan_log.warning(
+                "No local_library_path configured — database init deferred. "
+                "Set CALIBRE_LIBRARY_PATH or CALIBRE_BASE_PATH environment variable."
+            )
+    except Exception as e:
+        lifespan_log.warning("Database init deferred (non-fatal): %s", e)
 
     lifespan_log.info("SERVER LIFESPAN: connectivity probe passed, server ready")
     yield
@@ -594,12 +639,13 @@ async def discover_libraries() -> dict[str, str]:
     if config.local_library_path and config.local_library_path.exists():
         libraries["main"] = str(config.local_library_path)
 
-    # Discover additional libraries — shallow scan, same logic as startup probe
-    base_dir = Path("L:/Multimedia Files/Written Word")
-    if base_dir.exists():
-        for item in base_dir.iterdir():
-            if item.is_dir() and (item / "metadata.db").exists():
-                libraries[item.name] = str(item)
+    # Discover additional libraries via config_discovery
+    from calibre_mcp.config_discovery import discover_calibre_libraries as _discover
+
+    discovered = _discover()
+    for name, lib in discovered.items():
+        if lib.path.exists() and (lib.path / "metadata.db").exists():
+            libraries[name] = str(lib.path)
 
     available_libraries = libraries
     return libraries

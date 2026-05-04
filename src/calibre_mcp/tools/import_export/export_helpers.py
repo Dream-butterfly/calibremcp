@@ -175,16 +175,19 @@ def _get_library_stats_for_export(
 
     for book in books:
         for a in book.get("authors") or []:
-            authors_count[a] += 1
+            name = a.get("name", str(a)) if isinstance(a, dict) else str(a)
+            authors_count[name] += 1
         s = book.get("series")
         if s:
             name = s.get("name", str(s)) if isinstance(s, dict) else str(s)
             if name:
                 series_count[name] += 1
         for t in book.get("tags") or []:
-            tags_count[t] += 1
+            name = t.get("name", str(t)) if isinstance(t, dict) else str(t)
+            tags_count[name] += 1
         for fmt in book.get("formats") or []:
-            format_dist[fmt.lower() if isinstance(fmt, str) else str(fmt).lower()] += 1
+            fmt_name = fmt.get("format", str(fmt)) if isinstance(fmt, dict) else str(fmt)
+            format_dist[fmt_name.lower()] += 1
 
     def top_n(d: dict[str, int], n: int = 10) -> list[dict[str, Any]]:
         sorted_items = sorted(d.items(), key=lambda x: (-x[1], x[0]))[:n]

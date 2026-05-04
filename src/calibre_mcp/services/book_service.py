@@ -1155,6 +1155,7 @@ class BookService(BaseService[Book, BookCreate, BookUpdate, BookResponse]):
                     "series_id",
                     "tag_ids",
                     "rating",
+                    "comments",
                 ]:
                     setattr(book, field, value)
 
@@ -1200,6 +1201,18 @@ class BookService(BaseService[Book, BookCreate, BookUpdate, BookResponse]):
                     else:
                         rating = Rating(rating=update_data["rating"], book=book)
                         session.add(rating)
+
+            if "comments" in update_data:
+                # Update or create comment (text synopsis/description)
+                text = update_data["comments"]
+                existing = book.comments  # uselist=False, single Comment or None
+                if not text and existing:
+                    session.delete(existing)
+                elif text:
+                    if existing:
+                        existing.text = text
+                    else:
+                        session.add(Comment(book=book.id, text=text))
 
             session.add(book)
             session.commit()
@@ -1252,7 +1265,8 @@ class BookService(BaseService[Book, BookCreate, BookUpdate, BookResponse]):
                     "format": data.format.upper(),
                     "size": data.uncompressed_size,
                     "name": data.name,
-                    "mtime": data.mtime.isoformat() if data.mtime else None,
+                    # Calibre's data table may not have mtime column
+                    "mtime": getattr(data, "mtime", None),
                 }
                 for data in book.data
             ]
@@ -1281,6 +1295,24 @@ class BookService(BaseService[Book, BookCreate, BookUpdate, BookResponse]):
             # This assumes you have a method to retrieve the cover data
             # You'll need to implement this based on your storage solution
             return self._get_cover_data(book_id)
+
+    def get_recent_books(self, limit: int = 10) -> list[dict[str, Any]]:
+        """
+        Get recently added books.
+
+        Delegates to BookRepository.get_recent_books() which returns
+        formatted dicts via _format_book().
+
+        Args:
+            limit: Maximum number of books to return (default 10)
+
+        Returns:
+            List of recently added books as dictionaries
+        """
+        from calibre_mcp.db.repositories.book_repository import BookRepository
+
+        repo = BookRepository(self.db)
+        return repo.get_recent_books(limit=limit)
 
     def _get_cover_data(self, book_id: int) -> bytes | None:
         """

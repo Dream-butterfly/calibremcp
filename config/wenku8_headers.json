@@ -1,0 +1,47 @@
+{
+  "note": "从 Chrome DevTools 导出的 wenku8.net 请求标头。cf_clearance 过期后需要手动刷新。",
+  "last_updated": "2026-05-04",
+  "profiles": {
+    "mobile": {
+      "description": "Edge 147 Android — 用于搜索和访问书籍页面",
+      "user_agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36 Edg/147.0.0.0",
+      "impersonate": "chrome131_android",
+      "headers": {
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8,ja;q=0.7",
+        "Accept-Encoding": "gzip, deflate, br, zstd",
+        "Referer": "https://www.wenku8.net/",
+        "Sec-Ch-Ua": "\"Microsoft Edge\";v=\"147\", \"Not(A:Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+        "Sec-Ch-Ua-Mobile": "?1",
+        "Sec-Ch-Ua-Platform": "\"Android\"",
+        "Sec-Fetch-Dest": "document",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "same-origin",
+        "Sec-Fetch-User": "?1",
+        "Upgrade-Insecure-Requests": "1"
+      },
+      "cookie": "PHPSESSID=612c0d04ff7075a0ffefd8916e15e724; jieqiVisitTime=1746316837; jieqiVisitId=article_articleviews%3D2111%7C1158%7C1715%7C3636; cf_clearance=DRhoOi8xyszIQDoL3mHMn1Rd8iv4Iqqe8EOMM64VFZs-1777874804-1.2.1.1-ACDQ3XBnI3DbsGX4rQPY7B6yf3owSCml1vDk0ugyi%2FjTrYN5n3AG6gYDKqASZGW6J%2B4FS46RUQO5Q11gCiCEjg%3D%3D"
+    },
+    "desktop": {
+      "description": "Edge 147 Windows — 用于访问书籍详情页",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0",
+      "impersonate": "chrome146",
+      "headers": {
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+        "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8,ja;q=0.7",
+        "Accept-Encoding": "gzip, deflate, br, zstd",
+        "Referer": "https://www.wenku8.net/",
+        "Sec-Ch-Ua": "\"Microsoft Edge\";v=\"147\", \"Not(A:Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+        "Sec-Ch-Ua-Mobile": "?0",
+        "Sec-Ch-Ua-Platform": "\"Windows\"",
+        "Sec-Fetch-Dest": "document",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "same-origin",
+        "Sec-Fetch-User": "?1",
+        "Upgrade-Insecure-Requests": "1"
+      },
+      "cookie": "PHPSESSID=612c0d04ff7075a0ffefd8916e15e724; jieqiVisitTime=1746316837; jieqiVisitId=article_articleviews%3D2111%7C1158%7C1715%7C3636; cf_clearance=OlmxAhuyUW2m5fEKL_oIollrovSCFaV.GSsJrXppcXs-1777875694-1.2.1.1-ACDQ3XBnI3DbsGX4rQPY7B6yf3owSCml1vDk0ugyi%2FjTrYN5n3AG6gYDKqASZGW6J%2B4FS46RUQO5Q11gCiCEjg%3D%3D"
+    }
+  },
+  "refresh_instructions": "当 cf_clearance 过期后，在 Chrome 中打开 wenku8.net，按 F12 → Network 标签页，刷新页面，找到第一个请求，右键 → Copy as cURL，然后粘贴到这里更新 cookie 中的 cf_clearance 值。"
+}

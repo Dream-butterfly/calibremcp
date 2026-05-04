@@ -45,11 +45,13 @@ async def discover_libraries() -> dict[str, Any]:
     if config.local_library_path and config.local_library_path.exists():
         libraries["main"] = str(config.local_library_path)
 
-    base_dir = Path("L:/Multimedia Files/Written Word")
-    if base_dir.exists():
-        for item in base_dir.iterdir():
-            if item.is_dir() and (item / "metadata.db").exists():
-                libraries[item.name] = str(item)
+    # Also discover from config_discovery for additional libraries
+    from calibre_mcp.config_discovery import discover_calibre_libraries as _discover
+
+    discovered = _discover()
+    for name, lib in discovered.items():
+        if lib.path.exists() and (lib.path / "metadata.db").exists():
+            libraries[name] = str(lib.path)
 
     available_libraries = libraries
     return libraries

@@ -37,7 +37,9 @@ async def convert_book_format_helper(
 
 
 # NOTE: @mcp.tool() decorator removed - use manage_files portmanteau tool instead
-async def download_book_helper(book_id: int, format_preference: str = "EPUB") -> dict[str, Any]:
+async def download_book_helper(
+    book_id: int, format_preference: str = "EPUB", output_dir: str | None = None
+) -> dict[str, Any]:
     """
     Download a book file in the specified format.
 
@@ -50,6 +52,9 @@ async def download_book_helper(book_id: int, format_preference: str = "EPUB") ->
         book_id: Unique identifier of the book to download
         format_preference: Preferred file format (e.g., "EPUB", "PDF", "MOBI").
                           Case-insensitive. Common formats: EPUB, PDF, MOBI, AZW3, TXT
+        output_dir: Optional directory path to copy the file to.
+                    If provided, copies the file to the specified directory.
+                    If not provided, only returns the file path.
 
     Returns:
         Dictionary containing:
@@ -60,6 +65,7 @@ async def download_book_helper(book_id: int, format_preference: str = "EPUB") ->
             "size": int - File size in bytes
             "available_formats": List[str] - All formats available for this book
             "format_found": bool - Whether preferred format was found
+            "output_path": str - (only if output_dir set) Path to the copied file
         }
 
     Raises:
@@ -80,9 +86,7 @@ async def download_book_helper(book_id: int, format_preference: str = "EPUB") ->
     from pathlib import Path
 
     from ...config import CalibreConfig
-    from ...db.database import DatabaseService
     from ...logging_config import get_logger
-    from ...models.data import Data
     from ...services.book_service import book_service
 
     logger = get_logger("calibremcp.tools.file_operations")
@@ -100,7 +104,7 @@ async def download_book_helper(book_id: int, format_preference: str = "EPUB") ->
             raise ValueError(f"Book {book_id} not found")
 
         # Get library path
-        config = CalibreConfig()
+        config = CalibreConfig.load_config()
         if not config.local_library_path:
             raise ValueError("No library path configured")
 
@@ -124,20 +128,10 @@ async def download_book_helper(book_id: int, format_preference: str = "EPUB") ->
                 f"Format {format_preference} not available for book {book_id}, using {preferred_format['format']}"
             )
 
-        # Construct file path
-        db = DatabaseService()
-        with db.get_session() as session:
-            data_entry = (
-                session.query(Data)
-                .filter(Data.book_id == book_id, Data.format.ilike(preferred_format["format"]))
-                .first()
-            )
-
-            if not data_entry:
-                # Fallback: try to construct path from book path
-                file_path = book_path / f"{book_id}.{preferred_format['format'].lower()}"
-            else:
-                file_path = book_path / f"{data_entry.id}.{preferred_format['format'].lower()}"
+        # Construct file path from format name + book path
+        # Format name comes from the Data table (already loaded via get_book_formats relationship)
+        fmt_name = preferred_format.get("name", str(book_id))
+        file_path = book_path / f"{fmt_name}.{preferred_format['format'].lower()}"
 
         # Verify file exists
         if not file_path.exists():
@@ -149,7 +143,7 @@ async def download_book_helper(book_id: int, format_preference: str = "EPUB") ->
         # Get all available formats
         available_formats = [fmt["format"] for fmt in formats]
 
-        return {
+        result = {
             "book_id": book_id,
             "format": preferred_format["format"],
             "file_path": str(file_path),
@@ -158,6 +152,18 @@ async def download_book_helper(book_id: int, format_preference: str = "EPUB") ->
             "format_found": preferred_format["format"].upper() == format_pref_upper,
             "title": book.get("title", "Unknown"),
         }
+
+        # Copy to output_dir if specified
+        if output_dir:
+            import shutil
+            output_path = Path(output_dir).expanduser().resolve()
+            output_path.mkdir(parents=True, exist_ok=True)
+            dest = output_path / file_path.name
+            shutil.copy2(str(file_path), str(dest))
+            result["output_path"] = str(dest)
+            result["copied"] = True
+
+        return result
 
     except ValueError as ve:
         logger.error(f"Validation error downloading book: {ve}")

@@ -142,7 +142,7 @@ class BookRepository(BaseRepository[Book]):
                 session.query(Book)
                 .options(
                     joinedload(Book.authors),
-                    joinedload(Book.series),
+                    joinedload(Book.series_rel),  # Book.series is a @property; use series_rel
                     joinedload(Book.identifiers),
                 )
                 .order_by(desc(Book.timestamp))
@@ -222,6 +222,9 @@ class BookRepository(BaseRepository[Book]):
         """
         Format a Book object into a dictionary.
 
+        Uses safe access for all relationships — Calibre's actual schema may differ
+        from the SQLAlchemy model definitions (e.g., comments table has no book_id FK).
+
         Args:
             book: The Book object to format
 
@@ -231,7 +234,39 @@ class BookRepository(BaseRepository[Book]):
         if not book:
             return None
 
-        idents = {i.type: i.val for i in (book.identifiers or [])}
+        # Wrap all relationship access in try/except because Calibre's actual DB
+        # schema may not match the SQLAlchemy model definitions.
+        # Known mismatches: comments, data tables lack book_id FK columns.
+
+        comment_text = None
+        try:
+            if book.comments:
+                comment_text = book.comments[0].text
+        except Exception:
+            pass
+
+        formats = []
+        try:
+            formats = [
+                {"format": d.format, "size": d.uncompressed_size, "name": d.name}
+                for d in book.data
+            ]
+        except Exception:
+            pass
+
+        rating = 0
+        try:
+            if book.ratings:
+                rating = book.ratings[0].rating
+        except Exception:
+            pass
+
+        idents = {}
+        try:
+            idents = {i.type: i.val for i in (book.identifiers or [])}
+        except Exception:
+            pass
+
         return {
             "id": book.id,
             "title": book.title,
@@ -247,13 +282,11 @@ class BookRepository(BaseRepository[Book]):
             "last_modified": book.last_modified.isoformat() if book.last_modified else None,
             "authors": [{"id": a.id, "name": a.name} for a in book.authors],
             "tags": [{"id": t.id, "name": t.name} for t in book.tags],
-            "series": book.series[0].name if book.series else None,
-            "series_id": book.series[0].id if book.series else None,
-            "rating": book.ratings[0].rating if book.ratings else 0,
-            "comment": book.comments[0].text if book.comments else None,
-            "formats": [
-                {"format": d.format, "size": d.uncompressed_size, "name": d.name} for d in book.data
-            ],
+            "series": book.series.name if book.series else None,
+            "series_id": book.series.id if book.series else None,
+            "rating": rating,
+            "comment": comment_text,
+            "formats": formats,
             "identifiers": idents,
         }
 

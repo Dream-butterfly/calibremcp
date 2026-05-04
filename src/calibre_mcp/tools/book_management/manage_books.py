@@ -12,7 +12,7 @@ from ...server import mcp
 from ..shared.error_handling import format_error_response, handle_tool_error
 
 # Import the individual tool implementations (helper functions, not registered as MCP tools)
-from .add_book import add_book_helper
+from .add_book import add_book_helper, add_books_batch_helper
 from .delete_book import delete_book_helper
 from .get_book import get_book_helper
 from .update_book import update_book_helper
@@ -25,6 +25,7 @@ async def manage_books(
     operation: str,
     book_id: str | None = None,
     file_path: str | None = None,
+    file_paths: list[str] | None = None,
     metadata: dict[str, Any] | None = None,
     fetch_metadata: bool = True,
     convert_to: str | None = None,
@@ -48,6 +49,7 @@ async def manage_books(
 
     OPERATIONS:
     - add: Add a new book from file (requires file_path).
+          Batch add: use file_paths (list of paths) instead of file_path.
     - get: Retrieve basic book info by book_id.
     - details: Get full metadata and file information by book_id.
     - update: Update book metadata, status, or progress.
@@ -60,11 +62,38 @@ async def manage_books(
     """
     try:
         if operation == "add":
+            # Batch mode: file_paths takes priority
+            if file_paths:
+                try:
+                    results = await add_books_batch_helper(
+                        file_paths=file_paths,
+                        fetch_metadata=fetch_metadata,
+                        convert_to=convert_to,
+                        library_path=library_path,
+                    )
+                    return {
+                        "success": True,
+                        "operation": "add",
+                        "batch": True,
+                        "count": len(results),
+                        "books": results,
+                    }
+                except Exception as e:
+                    return handle_tool_error(
+                        exception=e,
+                        operation=operation,
+                        parameters={"file_paths": file_paths, "fetch_metadata": fetch_metadata},
+                        tool_name="manage_books",
+                        context="Batch adding books",
+                    )
+
+            # Single mode
             if not file_path:
                 return format_error_response(
                     error_msg=(
                         "file_path is required for operation='add'. "
-                        "Provide the path to the book file you want to add to the library."
+                        "Provide the path to the book file you want to add. "
+                        "For batch import, use file_paths instead."
                     ),
                     error_code="MISSING_FILE_PATH",
                     error_type="ValueError",
@@ -72,6 +101,7 @@ async def manage_books(
                     suggestions=[
                         "Provide the file_path parameter with the path to the book file",
                         "Example: file_path='/path/to/book.epub'",
+                        "For batch: file_paths=['/path/a.epub', '/path/b.epub']",
                         "Supported formats: epub, pdf, mobi, azw3, txt, html",
                         "Verify the file exists and is accessible",
                     ],

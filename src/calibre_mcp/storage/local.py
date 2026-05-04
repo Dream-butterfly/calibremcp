@@ -61,7 +61,6 @@ class LocalStorage(StorageBackend):
 
         # Try default locations if not found in specified path
         default_paths = [
-            Path("L:/Multimedia Files/Written Word/Main Library/metadata.db"),
             Path.home() / "Calibre Library/metadata.db",
             Path("C:/Calibre Library/metadata.db"),
         ]

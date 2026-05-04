@@ -68,7 +68,7 @@ async def get_tag_statistics() -> TagStatsResponse:
     db = DatabaseService()
 
     try:
-        with db.get_session() as session:
+        with db.session_scope() as session:
             # Get all tags with book counts
             tags = (
                 session.query(Tag)
@@ -186,7 +186,7 @@ async def find_duplicate_books() -> DuplicatesResponse:
     duplicate_groups = []
 
     try:
-        with db.get_session() as session:
+        with db.session_scope() as session:
             # Find exact title/author duplicates first (most common)
             dupes = (
                 session.query(Book.title, Book.author_sort, func.count("*").label("cnt"))
@@ -258,7 +258,7 @@ async def get_series_analysis() -> SeriesAnalysisResponse:
     db = DatabaseService()
 
     try:
-        with db.get_session() as session:
+        with db.session_scope() as session:
             # Get all series with their books
             series_list = session.query(Series).options(joinedload(Series.books)).all()
 
@@ -422,7 +422,7 @@ async def analyze_library_health() -> LibraryHealthResponse:
     missing_files = 0
 
     try:
-        with db.get_session() as session:
+        with db.session_scope() as session:
             books = session.query(Book).all()
             books_checked = len(books)
 
@@ -493,7 +493,7 @@ async def unread_priority_list() -> UnreadPriorityResponse:
 
     db = DatabaseService()
     try:
-        with db.get_session() as session:
+        with db.session_scope() as session:
             # Simple priority: Highest rated unread books first
             # Since we don't have a reliable 'unread' flag in base Calibre,
             # we might use a tag or custom column if it becomes standard.
@@ -522,7 +522,7 @@ async def reading_statistics() -> ReadingStats:
 
     db = DatabaseService()
     try:
-        with db.get_session() as session:
+        with db.session_scope() as session:
             total_books = session.query(func.count(Book.id)).scalar() or 0
             avg_rating = session.query(func.avg(Book.rating)).scalar() or 0.0
 

@@ -24,6 +24,7 @@ async def manage_files(
     # Download operation parameters
     book_id: int | None = None,
     format_preference: str = "EPUB",
+    output_dir: str | None = None,
     # Bulk operation parameters
     operation_type: str | None = None,
     target_format: str | None = None,
@@ -34,7 +35,7 @@ async def manage_files(
 
     Operations:
     - convert: Transform books between formats (EPUB, PDF, AZW3, etc.).
-    - download: Retrieve the local filesystem path for a specific book format.
+    - download: Retrieve file path (and optionally copy to output_dir).
     - bulk: Perform mass validation, cleanup, or conversion across multiple IDs.
 
     Example:
@@ -87,7 +88,7 @@ async def manage_files(
                     related_tools=["manage_files"],
                 )
             try:
-                result = await file_operations.download_book_helper(book_id, format_preference)
+                result = await file_operations.download_book_helper(book_id, format_preference, output_dir)
                 return result
             except Exception as e:
                 return handle_tool_error(

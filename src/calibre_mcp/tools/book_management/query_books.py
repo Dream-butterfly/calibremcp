@@ -285,7 +285,7 @@ async def query_books(
             books = book_service.get_recent_books(limit=limit)
             return {
                 "success": True,
-                "books": [book.dict() for book in books],
+                "books": list(books),  # repo returns dicts, no .dict() needed
                 "total": len(books),
                 "limit": limit,
             }

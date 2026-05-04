@@ -40,6 +40,70 @@
 
 *Austrian efficiency for Sandra's 1000+ book digital library. Built with realistic AI-assisted development timelines (days, not weeks).*
 
+---
+
+##  AI Agent 代码阅读入口
+
+> 本文档是 AI agent 理解 CalibreMCP 代码库的 **主入口**。
+> 如果你是第一次接触本项目，请按以下顺序阅读对应的 `INFO.md` 文件，以最短路径理解项目全貌。
+>
+> ⚠️ **首次接入时，必须先阅读 `ENVIRONMENT.md` 确认本地环境**，
+> 否则执行终端命令可能因 WSL/路径/uv 等问题报错。
+
+### 阅读顺序
+
+```
+第1步  ── ENVIRONMENT.md
+        本地环境信息（Shell 类型、路径规则、uv 用法、常见陷阱）
+        ⚠️ 首次接入必须阅读，避免终端命令执行错误
+
+第2步  ── CLAUDE.md 和 memory/FACT.md
+        项目指令 + 运行时上下文、已知 Bug、修复计划
+        ├── CLAUDE.md            → 开发环境配置、已知问题、启动方式
+        └── memory/FACT.md       → 完整 Bug 清单（8 个）、4 阶段修复计划、项目规模统计
+
+第3步  ── ARCHITECTURE.md
+        高层架构总览：源码目录、数据流、两条并行管线、遗留痕迹
+
+第4步  ── 核心层（按依赖关系阅读）
+        ├── src/calibre_mcp/INFO.md           → 根层 20 个文件一览
+        │                                      （server.py / config.py / config_discovery.py 等）
+        ├── src/calibre_mcp/db/INFO.md        → 📦 数据库层
+        │                                      DatabaseService 单例、SQLAlchemy ORM、4 个 Repository
+        ├── src/calibre_mcp/models/INFO.md    → 📦 数据模型
+        │                                      10 个 Pydantic 模型（Book / Author / Tag 等）
+        ├── src/calibre_mcp/services/INFO.md  → 📦 业务逻辑层
+        │                                      15 个 Service（BookService 62KB 最大）
+        ├── src/calibre_mcp/tools/INFO.md     → 📦 MCP 工具层（核心）
+        │                                      22 个子目录、130+ 文件、所有 portmanteau 工具
+        └── src/calibre_mcp/rag/INFO.md       → 📦 RAG 引擎
+                                               LanceDB 向量检索、分块/嵌入/索引 pipeline
+
+第5步  ── 辅助层
+        ├── src/calibre_mcp/api/INFO.md       → REST API 层
+        ├── src/calibre_mcp/viewers/INFO.md   → 阅读器（漫画/EPUB/PDF）
+        ├── src/calibre_mcp/storage/INFO.md   → 持久化存储
+        ├── src/calibre_mcp/utils/INFO.md     → 工具函数（含旧版硬编码）
+        └── src/calibre_mcp/server/INFO.md    → 备用服务器入口
+```
+
+> **提示**：每个 `INFO.md` 文件只列出关键类、关键函数和文件间的引用关系，不包含完整源码。
+> 阅读 `INFO.md` 后如需深入了解某个模块，再按需读取对应源文件。
+
+### 快速入口速查
+
+| 你想做什么 | 先读这个 |
+|---|---|
+| 首次接入——确认本地环境 | `ENVIRONMENT.md` |
+| 了解整体架构和 Bug | `memory/FACT.md` + `ARCHITECTURE.md` |
+| 查看所有 MCP 工具有哪些 | `src/calibre_mcp/tools/INFO.md` |
+| 了解数据库怎么连 | `src/calibre_mcp/db/INFO.md` |
+| 想修 Bug 改代码 | `memory/FACT.md` 的「修复计划」章节 |
+| 了解配置项 | `src/calibre_mcp/INFO.md`（config.py 部分） |
+| 了解 RAG 搜索 | `src/calibre_mcp/rag/INFO.md` |
+
+---
+
 ##  Quick Start
 
 ### **Prerequisites**

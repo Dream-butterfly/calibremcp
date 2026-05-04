@@ -1,32 +1,28 @@
 """
 Utility functions for discovering and managing Calibre libraries.
+
+NOTE: Library discovery now delegates to config_discovery.py.
+This module provides backward-compatible wrappers.
 """
 
 from pathlib import Path
 
-# Base directory containing Calibre libraries
-CALIBRE_BASE_DIR = Path("L:/Multimedia Files/Written Word")
-
 
 def discover_calibre_libraries() -> dict[str, Path]:
     """
-    Discover all Calibre libraries in the base directory.
+    Discover all Calibre libraries on the system.
+
+    Delegates to config_discovery for actual discovery logic.
+    Converts CalibreLibrary objects to simple Path values
+    for backward compatibility with existing callers.
 
     Returns:
-        Dict mapping library names to their paths
+        Dict mapping library names to their Paths
     """
-    libraries = {}
+    from calibre_mcp.config_discovery import discover_calibre_libraries as _new_discovery
 
-    if not CALIBRE_BASE_DIR.exists() or not CALIBRE_BASE_DIR.is_dir():
-        return {}
-
-    for item in CALIBRE_BASE_DIR.iterdir():
-        if item.is_dir():
-            metadata_db = item / "metadata.db"
-            if metadata_db.exists():
-                libraries[item.name] = item
-
-    return libraries
+    discovered = _new_discovery()
+    return {name: lib.path for name, lib in discovered.items()}
 
 
 def get_library_metadata(library_path: Path) -> dict[str, any]:

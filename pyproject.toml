@@ -44,6 +44,7 @@ dependencies = [
     "fastembed>=0.4.0",
     "lxml>=5.1.0", # Robust XML parsing for arXiv Atom feed
     "prefab-ui>=0.14.0", # MCP Apps (Prefab) — required for show_*_prefab_card tools
+    "curl_cffi>=0.5.10", # Browser TLS fingerprint impersonation for Cloudflare bypass
 ]
 
 [project.optional-dependencies]

@@ -24,9 +24,6 @@ T = TypeVar("T", bound=Callable[..., Any])
 # Global tool registry
 TOOL_REGISTRY: dict[str, dict[str, Any]] = {}
 
-# Base directory for Calibre libraries
-CALIBRE_BASE_DIR = Path("L:/Multimedia Files/Written Word")
-
 # Set of directories to ignore when discovering tools
 IGNORE_DIRS = {"__pycache__", ".mypy_cache", ".pytest_cache"}
 

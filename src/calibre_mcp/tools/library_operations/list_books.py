@@ -82,7 +82,7 @@ async def list_books(
         # We'll filter those after getting results, or extend BookService if needed
 
         # Query books using BookService
-        result = book_service.list(
+        result = book_service.get_all(
             skip=offset,
             limit=limit,
             search=search_term,
@@ -102,7 +102,7 @@ async def list_books(
             for book in books:
                 book_formats = book.get("formats", [])
                 # Check if any format matches (formats are usually uppercase in BookService)
-                if any(fmt.upper() == format_upper for fmt in book_formats):
+                if any((fmt.get("format", str(fmt)) if isinstance(fmt, dict) else str(fmt)).upper() == format_upper for fmt in book_formats):
                     filtered_books.append(book)
             books = filtered_books
             # Recalculate total (this is approximate since we filtered after pagination)

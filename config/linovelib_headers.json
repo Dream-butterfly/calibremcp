@@ -1,0 +1,34 @@
+{
+  "note": "从 Chrome DevTools 导出的 linovelib.com 请求标头（已登录状态）。cf_clearance 过期后需要手动刷新。",
+  "last_updated": "2026-05-04T19:00+08:00",
+  "profiles": {
+    "desktop": {
+      "description": "Edge 147 Windows — 已登录（新 cf_clearance）",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0",
+      "impersonate": "chrome146",
+      "headers": {
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+        "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8,ja;q=0.7,en-GB;q=0.6,en-US;q=0.5,zh-TW;q=0.4",
+        "Referer": "https://www.linovelib.com/",
+        "DNT": "1",
+        "Sec-Ch-Ua": "\"Microsoft Edge\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+        "Sec-Ch-Ua-Arch": "\"x86\"",
+        "Sec-Ch-Ua-Bitness": "\"64\"",
+        "Sec-Ch-Ua-Full-Version": "\"147.0.3912.98\"",
+        "Sec-Ch-Ua-Full-Version-List": "\"Microsoft Edge\";v=\"147.0.3912.98\", \"Not.A/Brand\";v=\"8.0.0.0\", \"Chromium\";v=\"147.0.7727.138\"",
+        "Sec-Ch-Ua-Mobile": "?0",
+        "Sec-Ch-Ua-Model": "\"\"",
+        "Sec-Ch-Ua-Platform": "\"Windows\"",
+        "Sec-Ch-Ua-Platform-Version": "\"19.0.0\"",
+        "Sec-Fetch-Dest": "document",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "same-origin",
+        "Sec-Fetch-User": "?1",
+        "Priority": "u=0, i",
+        "Upgrade-Insecure-Requests": "1"
+      },
+      "cookie": "PHPSESSID=eu2pd95a1pqo2npcsk75mjaeqv; user_tz=Asia%2FShanghai; jieqiUserInfo=jieqiUserId%3D478969%2CjieqiUserUname%3Da781768544%2CjieqiUserName%3Da781768544%2CjieqiUserGroup%3D3%2CjieqiUserGroupName%3D%E6%99%AE%E9%80%9A%E4%BC%9A%E5%91%98%2CjieqiUserVip%3D0%2CjieqiUserHonorId%3D1%2CjieqiUserHonor%3D%E5%A4%A9%E7%84%B6%2CjieqiUserToken%3D8f233b4ed1c1936ea45dd368ab0bc908%2CjieqiCodeLogin%3D0%2CjieqiCodePost%3D0%2CjieqiUserPassword%3D102d9c33710361b513c3c2d31f421c70%2CjieqiUserLogin%3D1777877037; jieqiVisitInfo=jieqiUserLogin%3D1777877037%2CjieqiUserId%3D478969; jieqiVisitId=article_articleviews%3D2906%7C2960; cf_clearance=eT8EwAOBVeW_.g1OC.3qgflo08h2S404QgJj7r.i1hI-1777877992-1.2.1.1-dOYbB_9mhI8rxSmtiUEMK3nesZpDvijbASkLp55olXMY6BLKIZffq0ahd1npdi3kZnJLGqYfpCbT4bTMN5Galqrl6YLKhnnjNqfcsZTCFo.0k9RIXtgwCZBke81wZ0sJ0HZ8XFLY_9nfmoNXwFPpap9Aar_RHKOC7fYiqaSOcqmOsKq1aTZC3atjQYXPNDL9lFpBYqSDdEgapP1b62ZtDw6WCBq.D96RFMfmbaq5u0ROoIWgcSQku8i72LyZDYwPX7r5fVbq3fKndTqQWwVmY6zJRsFNy.nExEhEYvwNExkG5uua9F1.S7cS7mdg1n1UQ0AI.0B44TDrIYfXGkrkN3hZeIxGBE6q_EhXXsP3dJ0udFhYmGmwXMt16Rdmm4SHoDJrQ9xwJZ1JV9Hp5G3wyczcYVVnxsWi_cLj2rZueJ4; haha=AR5RoOpD%2BGluR%2Fhpod%2FZgojB2sa0l5I0EcgFlUifC%2FTf1au3g92Exh7gYCBWE2cM%2Fe7OYmqwFHvP1YCcAs67krUWA%2FiLblxR09ecyQ%3D%3D; jieqiVisitTime=jieqiArticlesearchTime%3D1777877995"
+    }
+  },
+  "refresh_instructions": "登录 linovelib.com 后，在 Chrome 中按 F12 → Network → 刷新页面 → 复制第一个请求的 Cookie 头，更新配置文件中的 cookie 字段。"
+}
