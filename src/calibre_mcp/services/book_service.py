@@ -29,9 +29,9 @@ class BookService(BookQueryService, BookManagementService):
     are available on a single instance.
     """
 
-    def __init__(self):
-        """Initialize the combined service with a default DatabaseService instance."""
-        super().__init__(DatabaseService())
+    def __init__(self, db: DatabaseService | None = None):
+        """Initialize the combined service, optionally with a specific database instance."""
+        super().__init__(db or DatabaseService())
 
 
 # Singleton instance — all existing importers get this same instance

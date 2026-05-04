@@ -100,7 +100,7 @@ async def get_book_helper(
         from ...services.book_service import BookService
 
         db = get_database()
-        book_service = BookService(db)
+        book_service = BookService()
 
         try:
             book_id_int = int(book_id)
