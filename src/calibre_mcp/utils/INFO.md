@@ -1,20 +1,16 @@
 # `utils/` 工具函数
 
 > **职责**: 杂项工具函数，不属于核心业务逻辑。
-> 共 6 个文件。
+> 共 5 个文件。
 >
-> **⚠️ 旧版 INFO.md 中的 Bug 描述已过时**: `library_utils.py` 的硬编码路径问题已于 2026-05-04/05-06 修复。
+> **Phase 4 清理（2026-05-06）**: `library_utils.py` 已删除，功能迁至 `config_discovery.py`：
+> - `discover_calibre_libraries()` → `config_discovery`（原已是转发层）
+> - `get_library_metadata(path)` → `config_discovery` 新增模块级函数
+> - `get_current_library()` → 无人使用，删除
 
 ---
 
 ## 文件清单
-
-### `library_utils.py` (3KB) ⚠️ 曾为 Bug 2 根因
-- **函数**: `discover_calibre_libraries()` → `dict[str, Path]`
-- **历史**: 曾含 `CALIBRE_BASE_DIR = Path("L:/Multimedia Files/Written Word")` 硬编码路径
-- **当前**: ✅ 硬编码路径已删除，功能委托给 `config_discovery.py` 的新管线
-- **函数**: `get_library_metadata(path)` → 通过 `sqlite3` 直连 `metadata.db` 获取书库信息
-- **函数**: `get_current_library()` → 获取当前活跃书库
 
 ### `book_formatter.py` (7KB) — 书籍格式化
 - **函数**: `format_book(book_dict)` → 将书籍数据格式化为多行可读文本
@@ -43,7 +39,7 @@
 
 ```
 tools/library/library_management.py
-    └──> utils.library_utils           (✅ 硬编码路径已删除)
+    └──> config_discovery (library_utils 已合并至此，模块已删除 ✅)
 
 tools/book_management/fulltext_search.py
     └──> utils.fts_utils.search_fts()
@@ -54,9 +50,6 @@ tools/metadata/web_enrichment.py
 多处的输出格式化
     └──> utils.book_formatter.format_book()
 ```
-
-## 当前已知问题
-- **无安全删除**: `library_utils.py` 的部分功能与 `config_discovery.py` 存在重复，可考虑后续清理
 
 ## 相关文档
 - `tools/INFO.md` — MCP 工具层（工具们导入这些 utils）

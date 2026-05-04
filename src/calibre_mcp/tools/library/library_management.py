@@ -16,7 +16,7 @@ from ...server import LibraryListResponse, LibrarySearchResponse, LibraryStatsRe
 
 # Import services and utilities
 from ...services.book_service import book_service
-from ...utils.library_utils import discover_calibre_libraries, get_library_metadata
+from ...config_discovery import discover_calibre_libraries, get_library_metadata
 
 logger = get_logger("calibremcp.tools.library_management")
 
@@ -162,19 +162,19 @@ async def list_libraries_helper() -> LibraryListResponse:
         current_lib_name = None
         if config.local_library_path:
             # Find which discovered library matches the current path
-            for name, path in discovered_libs.items():
-                if path == config.local_library_path:
+            for name, lib in discovered_libs.items():
+                if lib.path == config.local_library_path:
                     current_lib_name = name
                     break
 
         # Build library list with metadata
         library_list = []
-        for name, path in discovered_libs.items():
-            metadata = get_library_metadata(path)
+        for name, lib in discovered_libs.items():
+            metadata = get_library_metadata(lib.path)
             library_list.append(
                 {
                     "name": name,
-                    "path": str(path),
+                    "path": str(lib.path),
                     "book_count": metadata.get("book_count", 0),
                     "size_mb": round(metadata.get("size_mb", 0), 2),
                     "is_active": (name == current_lib_name) if current_lib_name else False,
@@ -273,7 +273,7 @@ async def switch_library_helper(library_name: str) -> dict[str, Any]:
             )
 
         # Get library path
-        library_path = discovered_libs[library_name]
+        library_path = discovered_libs[library_name].path
 
         # Switch using config
         config = CalibreConfig()
@@ -410,7 +410,7 @@ async def get_library_stats_helper(library_name: str | None = None) -> LibrarySt
             discovered_libs = discover_calibre_libraries()
             if library_name not in discovered_libs:
                 raise ValueError(f"Library '{library_name}' not found")
-            library_path = discovered_libs[library_name]
+            library_path = discovered_libs[library_name].path
         else:
             # Use current library
             library_path = config.local_library_path
@@ -419,7 +419,7 @@ async def get_library_stats_helper(library_name: str | None = None) -> LibrarySt
                 discovered = discover_calibre_libraries()
                 if discovered:
                     library_name = next(iter(discovered))
-                    library_path = discovered[library_name]
+                    library_path = discovered[library_name].path
                 else:
                     raise ValueError(
                         "No active library set. Please specify library_name or switch to a library first."
@@ -571,8 +571,8 @@ async def cross_library_search_helper(
             if config.local_library_path:
                 # Find the active library name
                 active_lib_name = None
-                for name, path in discovered_libs.items():
-                    if path == config.local_library_path:
+                for name, lib in discovered_libs.items():
+                    if lib.path == config.local_library_path:
                         active_lib_name = name
                         break
                 if active_lib_name:
@@ -645,15 +645,15 @@ async def cross_library_search_helper(
         original_lib_name = None
 
         # Find original library name
-        for name, path in discovered_libs.items():
-            if path == original_path:
+        for name, lib in discovered_libs.items():
+            if lib.path == original_path:
                 original_lib_name = name
                 break
 
         for lib_name in libraries_to_search:
             try:
                 # Temporarily switch to this library
-                library_path = discovered_libs[lib_name]
+                library_path = discovered_libs[lib_name].path
 
                 from pathlib import Path
 

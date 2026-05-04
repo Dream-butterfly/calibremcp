@@ -476,3 +476,57 @@ def get_calibre_library_by_name(name: str) -> CalibreLibrary | None:
     """Convenience function to get a library by name"""
     discovery = get_calibre_discovery()
     return discovery.get_library_by_name(name)
+
+
+def get_library_metadata(library_path: Path) -> dict[str, any]:
+    """
+    Get metadata about a specific library directory.
+
+    Queries the metadata.db directly for book count and metadata.db file size.
+    Used by library management tools for quick library info display.
+
+    Args:
+        library_path: Path to the library directory
+
+    Returns:
+        Dictionary containing library metadata (name, path, metadata_db,
+        exists, size_mb, book_count)
+    """
+    metadata = {
+        "name": library_path.name,
+        "path": str(library_path),
+        "metadata_db": str(library_path / "metadata.db"),
+        "exists": (library_path / "metadata.db").exists(),
+        "size_mb": 0,
+        "book_count": 0,
+    }
+
+    metadata_db = library_path / "metadata.db"
+    if not metadata_db.exists():
+        return metadata
+
+    # Calculate metadata.db file size
+    try:
+        metadata["size_mb"] = metadata_db.stat().st_size / (1024 * 1024)
+    except (OSError, PermissionError):
+        pass
+
+    # Count books from database (more accurate than directory counting)
+    try:
+        import sqlite3
+
+        conn = sqlite3.connect(str(metadata_db))
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM books")
+        metadata["book_count"] = cursor.fetchone()[0] or 0
+        conn.close()
+    except (sqlite3.Error, OSError, PermissionError):
+        # Fallback to directory counting if database query fails
+        try:
+            metadata["book_count"] = sum(
+                1 for _ in library_path.glob("*") if _.is_dir() and _.name.isdigit()
+            )
+        except (OSError, PermissionError):
+            pass
+
+    return metadata

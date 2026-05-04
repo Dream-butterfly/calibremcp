@@ -1,6 +1,6 @@
-# 重构依赖地图（Phase 1-2 完成）
+# 重构依赖地图（Phase 1-4 完成）
 
-> 最新更新: 2026-05-06 (Phase 2)
+> 最新更新: 2026-05-06 (Phase 4)
 > 初始生成: 2026-05-04 (Phase 0)
 > 目的: 记录所有 MCP 工具的依赖关系，为后续重构提供安全参考
 
@@ -53,20 +53,23 @@
 
 ---
 
-## 二、`book_service.py` 方法归属（按工具域标注）
+## 二、`book_service.py` 拆分后方法归属（Phase 3 ✅）
 
-| 方法 | 域 | 给谁用 |
+原 63KB → 3 文件: `book_query_service.py`（只读）+ `book_management_service.py`（写）+ `book_service.py`（Facade）
+
+| 方法 | 归属文件 | 域 |
 |---|---|---|
-| `get_all()` | **query_books** | 搜索/过滤/排序/分页主入口 |
-| `get_by_id()` | **manage_books** + **manage_metadata** | 书籍详情查询 |
-| `create()` | **manage_books** | 新增书籍 |
-| `update()` | **manage_books** + **manage_metadata** | 更新元数据（含 comments 特殊处理） |
-| `delete()` | **manage_books** | 删除书籍 |
-| `get_recent_books()` | **query_books** | 最近添加列表 |
-| `get_book_formats()` | **manage_books** | 文件格式查询 |
-| `get_book_cover()` | **manage_books** | 封面图片 |
-| `_to_response()` | (内部) | 所有工具共用输出格式化 |
-| `_get_library_base_path()` | (内部) | 库路径解析 |
+| `get_all()` | `book_query_service.py` | **query_books** 搜索/过滤/排序/分页 |
+| `get_by_id()` | `book_query_service.py` | **manage_books** + **manage_metadata** |
+| `get_recent_books()` | `book_query_service.py` | **query_books** 最近添加 |
+| `get_book_formats()` | `book_query_service.py` | **manage_books** 格式查询 |
+| `get_book_cover()` | `book_query_service.py` | **manage_books** 封面 |
+| `get_books_by_series()` | `book_query_service.py` | **query_books** 系列检索 |
+| `_to_response()` | `book_query_service.py` | 内部：输出格式化 |
+| `_get_library_base_path()` | `book_query_service.py` | 内部：库路径 |
+| `create()` | `book_management_service.py` | **manage_books** 新增 |
+| `update()` | `book_management_service.py` | **manage_books** + **manage_metadata** |
+| `delete()` | `book_management_service.py` | **manage_books** 删除 |
 
 ---
 
@@ -82,6 +85,12 @@
 | `tools/__init__.py:tool()` | ✅ 加前缀 | `_DEPRECATED_tool()` |
 | `tools/__init__.py:get_available_tools()` | ✅ 加前缀 | `_DEPRECATED_get_available_tools()` |
 | `tools/__init__.py:discover_tools()` | ✅ 加前缀 | `_DEPRECATED_discover_tools()` |
+
+### Phase 4 完成（2026-05-06）
+
+| 原位置 | 处理 | 去向 |
+|---|---|---|
+| `utils/library_utils.py` (3KB) | ✅ 功能合入 `config_discovery.py` 后删除 | `config_discovery.get_library_metadata()` |
 
 ### 保留未处理（仍活跃）
 
@@ -139,8 +148,8 @@
 ## 六、后续计划
 
 ```
-Phase 2: book_tools.search_books_helper 拆入 book_management/helpers/
-Phase 3: book_service.py 按工具域拆分
-Phase 4: 遗留清理（library_utils 归并）
+Phase 2: book_tools.search_books_helper 拆入 book_management/helpers/ ✅ (2026-05-06)
+Phase 3: book_service.py 按工具域拆分 ✅ (2026-05-06)
+Phase 4: 遗留清理（library_utils → config_discovery 归并并删除）✅ (2026-05-06)
 Phase 5: 测试加固
 ```

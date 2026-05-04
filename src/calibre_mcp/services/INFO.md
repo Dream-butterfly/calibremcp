@@ -18,19 +18,23 @@
   - `create(data)`, `update(id, data)`, `delete(id)`
   - `count()`, `exists(id)`
 
-### `book_service.py` (63KB!) ⭐ 最大的 Service
-- **`BookService(BaseService[Book, BookCreate, BookUpdate, BookResponse])`**
-- 关键方法:
-  - `get_by_id(book_id)` — 获取书籍详情（含关联数据）
-  - `get_all(...)` — **主搜索入口**（✅ Phase 1 修复：Session 生命周期 + LIKE 搜索子查询 + has_empty_comments）
-  - `create(book_data, file_path)` — 添加书籍并导入文件
-  - `update(book_id, book_data)` — 更新元数据（✅ 已修复 `field="comments"` 写入简介）
-  - `delete(book_id)` — 删除书籍
-  - `get_book_formats(book_id)` — 获取文件格式
-  - `get_book_cover(book_id)` — 获取封面图片（bytes）
-  - `get_recent_books(limit)` — ✅ 已实现，获取最近添加的书籍
-  - `get_books_by_series(series_id)` — ✅ 新增（委托 BookRepository），获取系列内所有书籍
-- **⚠️ 注意**: 63KB 是项目第二大文件，建议在 Phase 3 按管理域拆分
+### `book_service.py` (~1KB) ⭐ Facade（Phase 3 已拆分）
+- **Phase 3 拆分（2026-05-06）**: 原 63KB 文件按管理域拆分为 3 个文件:
+  - **`book_query_service.py`** (~30KB) — 只读方法（`get_all`, `get_by_id`, `get_book_formats`, 等）
+  - **`book_management_service.py`** (~7KB) — 写方法（`create`, `update`, `delete`）
+  - **`book_service.py`** (~1KB) — 薄 Facade，多继承合并两者
+- **`BookService(BookQueryService, BookManagementService)`** — 多继承 Facade
+- 所有 26 处 `from ...services.book_service import book_service` 导入不受影响 ✅
+- 关键方法一览:
+  - `get_by_id(book_id)` — 获取书籍详情（含关联数据）— book_query_service
+  - `get_all(...)` — **主搜索入口**（✅ Phase 1 修复）— book_query_service
+  - `create(book_data, file_path)` — 添加书籍并导入文件 — book_management_service
+  - `update(book_id, book_data)` — 更新元数据（✅ 已修复注释写入）— book_management_service
+  - `delete(book_id)` — 删除书籍 — book_management_service
+  - `get_book_formats(book_id)` — 获取文件格式 — book_query_service
+  - `get_book_cover(book_id)` — 获取封面图片 — book_query_service
+  - `get_recent_books(limit)` — 最近添加书籍 — book_query_service
+  - `get_books_by_series(series_id)` — 系列内所有书籍 — book_query_service
 
 ### `tag_service.py` (18KB)
 - `TagService(BaseService[Tag, TagCreate, TagUpdate, TagResponse])`
@@ -91,7 +95,7 @@ database.py (DatabaseService + session_scope)
 ### 文件大小一览
 | 文件 | 大小 | 备注 |
 |---|---|---|
-| `book_service.py` | **63KB** | 项目第二大文件 |
+| `book_query_service.py` | ~30KB | Phase 3 从 book_service.py 拆分 |
 | `library_service.py` | 20KB | |
 | `tag_service.py` | 18KB | |
 | `publisher_service.py` | 16KB | |
@@ -99,6 +103,7 @@ database.py (DatabaseService + session_scope)
 | `base_service.py` | 12KB | 泛型基类 |
 | `viewer_service.py` | 9KB | |
 | `series_service.py` | 8KB | |
+| `book_management_service.py` | ~7KB | Phase 3 从 book_service.py 拆分 |
 | `user_comment_service.py` | 7KB | |
 | `description_service.py` | 7KB | |
 | `extended_metadata_service.py` | 7KB | |
@@ -106,6 +111,7 @@ database.py (DatabaseService + session_scope)
 | `rag_ingestor.py` | 6KB | |
 | `deep_ingestor.py` | 5KB | |
 | `user_service.py` | 2KB | |
+| `book_service.py` | ~1KB | Phase 3 重构为薄 Facade |
 
 ## 相关文档
 - `db/INFO.md` — 数据库层（Repository）

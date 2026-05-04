@@ -265,3 +265,12 @@ run_server.py
 # Local browser exports (e.g. ToolBench) — do not commit
 calibremcp - Trust Report _ ToolBench.htm
 calibremcp - Trust Report _ ToolBench_files/
+
+# AI code snapshot tool
+.snapshots/
+
+# Runtime logs
+logs/
+
+# Test fixtures (temporary large files)
+tests/fixtures/lancedb/
