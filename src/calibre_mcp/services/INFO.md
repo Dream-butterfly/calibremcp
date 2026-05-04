@@ -18,18 +18,19 @@
   - `create(data)`, `update(id, data)`, `delete(id)`
   - `count()`, `exists(id)`
 
-### `book_service.py` (62KB!) ⭐ 最大的 Service
+### `book_service.py` (63KB!) ⭐ 最大的 Service
 - **`BookService(BaseService[Book, BookCreate, BookUpdate, BookResponse])`**
 - 关键方法:
   - `get_by_id(book_id)` — 获取书籍详情（含关联数据）
-  - `get_all(...)` — **主搜索入口**（含 search text, author_name, tag_name, series_name, rating, dates, formats, pagination）
+  - `get_all(...)` — **主搜索入口**（✅ Phase 1 修复：Session 生命周期 + LIKE 搜索子查询 + has_empty_comments）
   - `create(book_data, file_path)` — 添加书籍并导入文件
   - `update(book_id, book_data)` — 更新元数据（✅ 已修复 `field="comments"` 写入简介）
   - `delete(book_id)` — 删除书籍
   - `get_book_formats(book_id)` — 获取文件格式
   - `get_book_cover(book_id)` — 获取封面图片（bytes）
-  - `get_recent_books(limit)` — ✅ 已实现（L1299），获取最近添加的书籍
-- **⚠️ 注意**: 62KB 是项目第二大文件，可能存在过度膨胀
+  - `get_recent_books(limit)` — ✅ 已实现，获取最近添加的书籍
+  - `get_books_by_series(series_id)` — ✅ 新增（委托 BookRepository），获取系列内所有书籍
+- **⚠️ 注意**: 63KB 是项目第二大文件，建议在 Phase 3 按管理域拆分
 
 ### `tag_service.py` (18KB)
 - `TagService(BaseService[Tag, TagCreate, TagUpdate, TagResponse])`
@@ -83,13 +84,14 @@ repositories/ (BookRepository, etc.)
 database.py (DatabaseService + session_scope)
 ```
 
-## 当前已知问题
-- **text 搜索无效**: `get_all(search=...)` 的 LIKE 过滤不生效
+## ⚠️ 注意事项
+- **两个不同的 `Book` 模型**: `book_service.py` 使用 `db.models.Book`（`series` 是直接 `relationship`），`book_repository.py` 使用 `models.Book`（`series` 是 `@property`，`series_rel` 是关系）
+- **`has_empty_comments` 过滤**: ✅ 已在 Phase 1 修复（`**filters` 循环特例处理 + 子查询/JOIN）
 
 ### 文件大小一览
 | 文件 | 大小 | 备注 |
 |---|---|---|
-| `book_service.py` | **62KB** | 项目第二大文件 |
+| `book_service.py` | **63KB** | 项目第二大文件 |
 | `library_service.py` | 20KB | |
 | `tag_service.py` | 18KB | |
 | `publisher_service.py` | 16KB | |

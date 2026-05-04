@@ -1,6 +1,6 @@
-# 重构依赖地图（Phase 1 完成）
+# 重构依赖地图（Phase 1-2 完成）
 
-> 最新更新: 2026-05-04 (Phase 1)
+> 最新更新: 2026-05-06 (Phase 2)
 > 初始生成: 2026-05-04 (Phase 0)
 > 目的: 记录所有 MCP 工具的依赖关系，为后续重构提供安全参考
 
@@ -12,7 +12,7 @@
 
 | # | MCP 工具 | 端口文件 | 使用的 `book_service` 方法 | 依赖强度 |
 |---|---|---|---|---|
-| 1 | **query_books** | `book_management/query_books.py` → `book_tools.search_books_helper()` | `get_all()` 全部功能 | 🔴 超重度 (1075行helper) |
+| 1 | **query_books** | `book_management/query_books.py` → `search_service.search_books()` ⭐ Phase 2 | `get_all()` 全部功能 | 🟡 轻度 (拆分后为编排层) |
 | 2 | **manage_books** | `book_management/manage_books.py` → 4 helpers | `get_by_id`, `create`, `update`, `delete` | 🔴 重度 (CRUD) |
 | 3 | **manage_metadata** | `metadata/manage_metadata.py` → `metadata_management` | `update()` | 🟡 中度 |
 | 4 | **manage_libraries** | `library/manage_libraries.py` → `library_management.py` | `get_all()`, 统计 | 🟢 轻度 |

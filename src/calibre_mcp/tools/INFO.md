@@ -37,8 +37,13 @@
 ### `book_management/` — ⭐ manage_books + query_books
 - `manage_books.py` (13KB) — 书籍 CRUD portmanteau（add/get/details/update/delete）
 - `query_books.py` (15KB) — **搜索 portmanteau**（search/list/recent/by_author/by_series）
-  - ✅ `operation="recent"` 已修复（`get_recent_books()` 存在）
-  - ⚠️ `text` 搜索参数无效（参见下方已知问题）
+  - ✅ 全部操作已验证通过
+  - ✅ Phase 2: 搜索逻辑从 `book_tools.search_books_helper` 切换到 `search_service.search_books`
+- `search_service.py` — **Phase 2 新增** 搜索编排层
+- `helpers/` — **Phase 2 新增** 纯函数搜索帮助模块
+  - `query_builder.py` — 字段处理、智能查询解析、过滤器组装
+  - `filter_assembler.py` — 提取过滤参数、重建 get_all_filters
+  - `result_formatter.py` — 响应格式化、表格渲染
 - `add_book.py` (11KB), `add_books.py` (3KB), `delete_book.py` (9KB)
 - `get_book.py` (8KB), `update_book.py` (14KB)
 - `fulltext_search.py` (8KB) — 全文搜索
@@ -111,10 +116,9 @@ server.main()
               └── 等等
 ```
 
-## 当前已知问题
-- **text 搜索无效**: `book_service.get_all(search=...)` 的 LIKE 过滤不生效，返回全部 914 本书
-  - 绕过: 使用 `series`、`title`、`author` 等独立参数
-- **has_empty_comments 过滤无效**: `Book` 模型无该字段，且未作为特例处理，静默忽略
+## ⚠️ 已知问题/注意事项
+- **两个不同的 `Book` 模型**: `db.models.Book.series` 是关系（`book_service.py` 使用），`models.Book.series` 是 `@property`（`book_repository.py` 使用）。修改涉及 Book 的代码时务必确认用的是哪个模型。
+- **旧 `search_books_helper` 安全副本**: `book_tools.py` 中保留 ~1075 行旧代码（无 `@mcp.tool()`，未被 import），已验证无误后可安全删除。
 
 ## 相关文档
 - `services/INFO.md` — 被 tools 调用的业务逻辑层

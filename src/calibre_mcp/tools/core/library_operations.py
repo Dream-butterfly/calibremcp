@@ -6,7 +6,6 @@ and retrieving book information from Calibre libraries.
 """
 
 import asyncio
-import time as _time_mod
 
 from ...logging_config import get_logger, log_error
 from ...server import (

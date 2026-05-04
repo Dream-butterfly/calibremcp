@@ -199,9 +199,7 @@ async def search_books(
     Returns:
         Paginated dict with items, total, page info, and optional table.
     """
-    import time as _time
-
-    start_time = _time.time()
+    start_time = time.time()
 
     logger.info(
         "Starting book search (v2 search_service)",
@@ -321,7 +319,7 @@ async def search_books(
             format_table=format_table,
         )
 
-        duration = _time.time() - start_time
+        duration = time.time() - start_time
         logger.info(
             "Book search completed successfully (search_service)",
             extra={
@@ -337,7 +335,7 @@ async def search_books(
     except ValueError:
         raise
     except Exception as e:
-        duration = _time.time() - start_time
+        duration = time.time() - start_time
         logger.error(
             "Search failed (search_service)",
             extra={
